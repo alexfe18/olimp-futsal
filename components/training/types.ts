@@ -20,9 +20,19 @@ export type TrainingRecord = {
 export type AttendanceRecord = {
   id: string;
   trainingId: string;
+  playerId: string | null;
   name: string;
   status: AttendanceStatus;
   updatedAt: string;
+};
+
+export type PlayerRecord = {
+  id: string;
+  fullName: string;
+  displayName: string | null;
+  shirtNumber: number | null;
+  position: string | null;
+  isActive: boolean;
 };
 
 export type FeedbackState = {

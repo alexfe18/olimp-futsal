@@ -2,6 +2,8 @@ import type { FeedbackState, StatusOption } from "./types";
 
 export const PLAYER_NAME_STORAGE_KEY = "olimp-player-name";
 
+export const PLAYER_ID_STORAGE_KEY = "olimp-player-id";
+
 export const emptyFeedback: FeedbackState = {
   type: "",
   title: "",
