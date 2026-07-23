@@ -5,12 +5,16 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
+type TrainingStatus = "scheduled" | "cancelled" | "completed";
+
 type TrainingRow = {
   id: string;
   title: string;
   starts_at: string;
   location: string;
   is_active: boolean;
+  status: TrainingStatus;
+  cancellation_reason: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -74,24 +78,43 @@ function formatTrainingTime(isoDate: string) {
   }).format(new Date(isoDate));
 }
 
+function getStatusLabel(status: TrainingStatus) {
+  if (status === "cancelled") {
+    return "Скасовано";
+  }
+
+  if (status === "completed") {
+    return "Завершено";
+  }
+
+  return "Заплановано";
+}
+
 export default function AdminPage() {
   const router = useRouter();
 
   const [adminEmail, setAdminEmail] = useState("");
+
   const [trainings, setTrainings] = useState<TrainingRow[]>([]);
+
   const [attendanceCounts, setAttendanceCounts] = useState<
     Record<string, number>
   >({});
 
   const [form, setForm] = useState<TrainingForm>(emptyTrainingForm);
+
   const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   const [message, setMessage] = useState("");
+
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
 
   const [isLoading, setIsLoading] = useState(true);
+
   const [isSaving, setIsSaving] = useState(false);
+
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const [processingTrainingId, setProcessingTrainingId] = useState<
     string | null
   >(null);
@@ -104,12 +127,15 @@ export default function AdminPage() {
     const { data: trainingData, error: trainingError } = await supabase
       .from("trainings")
       .select(
-        "id, title, starts_at, location, is_active, created_at, updated_at",
+        "id, title, starts_at, location, is_active, status, cancellation_reason, created_at, updated_at",
       )
-      .order("starts_at", { ascending: false });
+      .order("starts_at", {
+        ascending: false,
+      });
 
     if (trainingError) {
       console.error("Trainings loading error:", trainingError);
+
       setMessage("Не вдалося завантажити список тренувань.");
       setMessageType("error");
       setIsLoading(false);
@@ -122,13 +148,14 @@ export default function AdminPage() {
 
     if (attendanceError) {
       console.error("Attendance counts loading error:", attendanceError);
+
       setMessage("Не вдалося завантажити статистику відповідей.");
       setMessageType("error");
       setIsLoading(false);
       return;
     }
 
-    const counts = (attendanceData as AttendanceRow[]).reduce<
+    const counts = ((attendanceData ?? []) as AttendanceRow[]).reduce<
       Record<string, number>
     >((result, record) => {
       result[record.training_id] = (result[record.training_id] ?? 0) + 1;
@@ -160,6 +187,7 @@ export default function AdminPage() {
       }
 
       setAdminEmail(session.user.email ?? "");
+
       await loadAdminData(true);
     }
 
@@ -202,6 +230,7 @@ export default function AdminPage() {
     return () => {
       isMounted = false;
       authSubscription.unsubscribe();
+
       void supabase.removeChannel(realtimeChannel);
     };
   }, [router]);
@@ -267,6 +296,7 @@ export default function AdminPage() {
 
     if (error) {
       console.error("Training activation error:", error);
+
       setMessage("Не вдалося активувати тренування.");
       setMessageType("error");
       setProcessingTrainingId(null);
@@ -284,6 +314,7 @@ export default function AdminPage() {
     event.preventDefault();
 
     const normalizedTitle = form.title.trim();
+
     const normalizedLocation = form.location.trim();
 
     if (!normalizedTitle || !form.date || !form.time || !normalizedLocation) {
@@ -328,6 +359,8 @@ export default function AdminPage() {
             starts_at: startsAt.toISOString(),
             location: normalizedLocation,
             is_active: false,
+            status: "scheduled",
+            cancellation_reason: null,
           })
           .select("id")
           .single();
@@ -354,19 +387,111 @@ export default function AdminPage() {
           ? "Тренування успішно оновлено."
           : "Нове тренування успішно створено.",
       );
-      setMessageType("success");
 
+      setMessageType("success");
       setIsEditorOpen(false);
       setForm(emptyTrainingForm);
 
       await loadAdminData();
     } catch (error) {
       console.error("Training saving error:", error);
+
       setMessage("Не вдалося зберегти тренування. Перевірте введені дані.");
       setMessageType("error");
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function cancelTraining(training: TrainingRow) {
+    const reason = window.prompt(
+      "Вкажіть причину скасування тренування:",
+      training.cancellation_reason ?? "",
+    );
+
+    if (reason === null) {
+      return;
+    }
+
+    const normalizedReason = reason.trim();
+
+    if (!normalizedReason) {
+      setMessage("Вкажіть причину скасування тренування.");
+      setMessageType("error");
+      return;
+    }
+
+    const isConfirmed = window.confirm(
+      `Скасувати тренування «${training.title}»?\n\nПричина: ${normalizedReason}`,
+    );
+
+    if (!isConfirmed) {
+      return;
+    }
+
+    setProcessingTrainingId(training.id);
+    setMessage("");
+    setMessageType("");
+
+    const { error } = await supabase
+      .from("trainings")
+      .update({
+        status: "cancelled",
+        cancellation_reason: normalizedReason,
+      })
+      .eq("id", training.id);
+
+    if (error) {
+      console.error("Training cancellation error:", error);
+
+      setMessage("Не вдалося скасувати тренування.");
+      setMessageType("error");
+      setProcessingTrainingId(null);
+      return;
+    }
+
+    setMessage("Тренування скасовано. Відповіді учасників збережено.");
+    setMessageType("success");
+
+    await loadAdminData();
+    setProcessingTrainingId(null);
+  }
+
+  async function restoreTraining(training: TrainingRow) {
+    const isConfirmed = window.confirm(
+      `Відновити тренування «${training.title}»?`,
+    );
+
+    if (!isConfirmed) {
+      return;
+    }
+
+    setProcessingTrainingId(training.id);
+    setMessage("");
+    setMessageType("");
+
+    const { error } = await supabase
+      .from("trainings")
+      .update({
+        status: "scheduled",
+        cancellation_reason: null,
+      })
+      .eq("id", training.id);
+
+    if (error) {
+      console.error("Training restoration error:", error);
+
+      setMessage("Не вдалося відновити тренування.");
+      setMessageType("error");
+      setProcessingTrainingId(null);
+      return;
+    }
+
+    setMessage("Тренування відновлено.");
+    setMessageType("success");
+
+    await loadAdminData();
+    setProcessingTrainingId(null);
   }
 
   async function deleteTraining(training: TrainingRow) {
@@ -393,6 +518,7 @@ export default function AdminPage() {
 
     if (error) {
       console.error("Training deletion error:", error);
+
       setMessage("Не вдалося видалити тренування.");
       setMessageType("error");
       setProcessingTrainingId(null);
@@ -418,6 +544,7 @@ export default function AdminPage() {
 
     if (error) {
       console.error("Admin logout error:", error);
+
       setMessage("Не вдалося вийти з облікового запису.");
       setMessageType("error");
       setIsLoggingOut(false);
@@ -468,12 +595,12 @@ export default function AdminPage() {
               </button>
 
               <Link
-                href="/#training"
+                href="/training"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-5 py-3 text-sm font-black transition hover:border-sky-400 hover:text-sky-300"
               >
-                Відкрити сайт
+                Відкрити сторінку
               </Link>
 
               <button
@@ -621,8 +748,8 @@ export default function AdminPage() {
                     <span className="block font-black">Зробити активним</span>
 
                     <span className="mt-1 block text-sm text-slate-500">
-                      Після збереження саме ця подія відображатиметься на
-                      головній сторінці.
+                      Після збереження ця подія відображатиметься на сторінці
+                      тренування.
                     </span>
                   </span>
 
@@ -697,12 +824,26 @@ export default function AdminPage() {
         </section>
 
         {activeTraining && (
-          <section className="mt-8 overflow-hidden rounded-[2rem] bg-slate-950 p-6 text-white shadow-xl sm:p-8">
+          <section
+            className={`mt-8 overflow-hidden rounded-[2rem] p-6 text-white shadow-xl sm:p-8 ${
+              activeTraining.status === "cancelled"
+                ? "bg-red-950"
+                : "bg-slate-950"
+            }`}
+          >
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.25em] text-sky-400">
-                  Активна подія
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-black uppercase tracking-[0.25em] text-sky-400">
+                    Активна подія
+                  </p>
+
+                  {activeTraining.status === "cancelled" && (
+                    <span className="rounded-full bg-red-400/15 px-3 py-1 text-xs font-black uppercase tracking-wide text-red-200">
+                      Скасовано
+                    </span>
+                  )}
+                </div>
 
                 <h2 className="mt-3 text-3xl font-black">
                   {activeTraining.title}
@@ -715,6 +856,13 @@ export default function AdminPage() {
                   {" · "}
                   {activeTraining.location}
                 </p>
+
+                {activeTraining.status === "cancelled" &&
+                  activeTraining.cancellation_reason && (
+                    <p className="mt-4 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 font-bold text-red-100">
+                      Причина: {activeTraining.cancellation_reason}
+                    </p>
+                  )}
 
                 <p className="mt-3 text-sm text-slate-400">
                   Уже відповіли: {attendanceCounts[activeTraining.id] ?? 0}
@@ -760,19 +908,33 @@ export default function AdminPage() {
                   <article
                     key={training.id}
                     className={`rounded-3xl border bg-white p-6 shadow-sm ${
-                      training.is_active
-                        ? "border-sky-400 ring-4 ring-sky-100"
-                        : "border-slate-200"
+                      training.status === "cancelled"
+                        ? "border-red-300 ring-4 ring-red-100"
+                        : training.is_active
+                          ? "border-sky-400 ring-4 ring-sky-100"
+                          : "border-slate-200"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-5">
-                      <div>
+                      <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           {training.is_active && (
                             <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-black uppercase tracking-wide text-sky-700">
                               Активна
                             </span>
                           )}
+
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${
+                              training.status === "cancelled"
+                                ? "bg-red-100 text-red-700"
+                                : training.status === "completed"
+                                  ? "bg-slate-200 text-slate-700"
+                                  : "bg-emerald-100 text-emerald-700"
+                            }`}
+                          >
+                            {getStatusLabel(training.status)}
+                          </span>
 
                           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
                             Відповідей: {attendanceCounts[training.id] ?? 0}
@@ -790,6 +952,13 @@ export default function AdminPage() {
                           {" · "}
                           {training.location}
                         </p>
+
+                        {training.status === "cancelled" &&
+                          training.cancellation_reason && (
+                            <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold leading-6 text-red-800">
+                              Причина скасування: {training.cancellation_reason}
+                            </p>
+                          )}
                       </div>
                     </div>
 
@@ -803,16 +972,37 @@ export default function AdminPage() {
                         Редагувати
                       </button>
 
-                      {!training.is_active && (
+                      {!training.is_active &&
+                        training.status !== "cancelled" && (
+                          <button
+                            type="button"
+                            onClick={() => activateTraining(training.id)}
+                            disabled={isProcessing}
+                            className="inline-flex min-h-10 items-center justify-center rounded-full bg-sky-100 px-4 py-2 text-sm font-black text-sky-800 transition hover:bg-sky-200 disabled:opacity-50"
+                          >
+                            {isProcessing ? "Обробка..." : "Зробити активною"}
+                          </button>
+                        )}
+
+                      {training.status === "scheduled" ? (
                         <button
                           type="button"
-                          onClick={() => activateTraining(training.id)}
+                          onClick={() => cancelTraining(training)}
                           disabled={isProcessing}
-                          className="inline-flex min-h-10 items-center justify-center rounded-full bg-sky-100 px-4 py-2 text-sm font-black text-sky-800 transition hover:bg-sky-200 disabled:opacity-50"
+                          className="inline-flex min-h-10 items-center justify-center rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-black text-amber-800 transition hover:bg-amber-100 disabled:opacity-50"
                         >
-                          {isProcessing ? "Обробка..." : "Зробити активною"}
+                          Скасувати
                         </button>
-                      )}
+                      ) : training.status === "cancelled" ? (
+                        <button
+                          type="button"
+                          onClick={() => restoreTraining(training)}
+                          disabled={isProcessing}
+                          className="inline-flex min-h-10 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-50"
+                        >
+                          Відновити
+                        </button>
+                      ) : null}
 
                       <button
                         type="button"

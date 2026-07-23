@@ -12,7 +12,7 @@ const navigation = [
     href: "#achievements",
     id: "achievements",
   },
-  { label: "Тренування", href: "#training", id: "training" },
+  { label: "Тренування", href: "/training", id: "training" },
   { label: "Галерея", href: "#gallery", id: "gallery" },
   { label: "Контакти", href: "#contacts", id: "contacts" },
 ];

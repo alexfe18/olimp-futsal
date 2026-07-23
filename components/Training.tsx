@@ -1,9 +1,16 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 type AttendanceStatus = "yes" | "maybe" | "no";
+type TrainingVariant = "section" | "standalone";
+
+type TrainingProps = {
+  variant?: TrainingVariant;
+};
 
 type TrainingRecord = {
   id: string;
@@ -20,27 +27,90 @@ type AttendanceRecord = {
   updatedAt: string;
 };
 
+type FeedbackState = {
+  type: "success" | "error" | "";
+  title: string;
+  description: string;
+};
+
+const PLAYER_NAME_STORAGE_KEY = "olimp-player-name";
+
+const emptyFeedback: FeedbackState = {
+  type: "",
+  title: "",
+  description: "",
+};
+
 const statusOptions: Array<{
   value: AttendanceStatus;
   label: string;
   groupLabel: string;
+  icon: string;
 }> = [
   {
     value: "yes",
     label: "Буду",
     groupLabel: "Будуть",
+    icon: "✓",
   },
   {
     value: "maybe",
     label: "Під питанням",
     groupLabel: "Під питанням",
+    icon: "?",
   },
   {
     value: "no",
     label: "Не буду",
     groupLabel: "Не будуть",
+    icon: "×",
   },
 ];
+
+function normalizePlayerName(playerName: string) {
+  return playerName.trim().toLocaleLowerCase("uk");
+}
+
+function getStatusStorageKey(trainingId: string, playerName: string) {
+  return [
+    "olimp-training-status",
+    trainingId,
+    encodeURIComponent(normalizePlayerName(playerName)),
+  ].join("-");
+}
+
+function isAttendanceStatus(value: string | null): value is AttendanceStatus {
+  return value === "yes" || value === "maybe" || value === "no";
+}
+
+function getSuccessFeedback(
+  status: AttendanceStatus,
+  wasUpdated: boolean,
+): FeedbackState {
+  const title = wasUpdated ? "Відповідь оновлено!" : "Дякуємо!";
+
+  if (status === "yes") {
+    return {
+      type: "success",
+      title,
+      description: "До зустрічі на тренуванні! 💙💛",
+    };
+  }
+
+  if (status === "maybe") {
+    return {
+      type: "success",
+      title,
+      description: "Ваш вибір збережено. Змініть відповідь, коли визначитеся.",
+    };
+  }
+
+  return {
+    type: "success",
+    title,
+    description: "Дякуємо, що завчасно попередили.",
+  };
+}
 
 function PlayerIcon() {
   return (
@@ -78,19 +148,38 @@ function PlayerIcon() {
   );
 }
 
-export default function Training() {
+export default function Training({ variant = "section" }: TrainingProps) {
+  const isStandalone = variant === "standalone";
+
   const [training, setTraining] = useState<TrainingRecord | null>(null);
+
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
 
   const [name, setName] = useState("");
+  const [rememberedName, setRememberedName] = useState("");
+
   const [selectedStatus, setSelectedStatus] = useState<AttendanceStatus | null>(
     null,
   );
 
-  const [message, setMessage] = useState("");
+  const [feedback, setFeedback] = useState<FeedbackState>(emptyFeedback);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    try {
+      const savedName = window.localStorage.getItem(PLAYER_NAME_STORAGE_KEY);
+
+      if (savedName?.trim()) {
+        setName(savedName);
+        setRememberedName(savedName);
+      }
+    } catch (error) {
+      console.error("Player name loading error:", error);
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -106,7 +195,9 @@ export default function Training() {
         .from("trainings")
         .select("id, title, starts_at, location")
         .eq("is_active", true)
-        .order("starts_at", { ascending: true })
+        .order("starts_at", {
+          ascending: true,
+        })
         .limit(1)
         .maybeSingle();
 
@@ -116,7 +207,9 @@ export default function Training() {
 
       if (trainingError) {
         console.error("Training loading error:", trainingError);
+
         setLoadError("Не вдалося завантажити дані тренування.");
+
         setIsLoading(false);
         return;
       }
@@ -142,7 +235,9 @@ export default function Training() {
         .from("training_attendance")
         .select("id, training_id, player_name, status, updated_at")
         .eq("training_id", trainingData.id)
-        .order("updated_at", { ascending: false });
+        .order("updated_at", {
+          ascending: false,
+        });
 
       if (!isMounted) {
         return;
@@ -152,6 +247,7 @@ export default function Training() {
         console.error("Attendance loading error:", attendanceError);
 
         setLoadError("Не вдалося завантажити відповіді учасників.");
+
         setAttendance([]);
         setIsLoading(false);
         return;
@@ -182,7 +278,11 @@ export default function Training() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     const realtimeChannel = supabase
-      .channel("olimp-training-realtime")
+      .channel(
+        isStandalone
+          ? "olimp-training-page-realtime"
+          : "olimp-training-section-realtime",
+      )
       .on(
         "postgres_changes",
         {
@@ -222,7 +322,49 @@ export default function Training() {
 
       void supabase.removeChannel(realtimeChannel);
     };
-  }, []);
+  }, [isStandalone]);
+
+  const currentPlayerRecord = useMemo(() => {
+    const normalizedName = normalizePlayerName(name);
+
+    if (!normalizedName) {
+      return null;
+    }
+
+    return (
+      attendance.find(
+        (record) => normalizePlayerName(record.name) === normalizedName,
+      ) ?? null
+    );
+  }, [attendance, name]);
+
+  useEffect(() => {
+    if (!training || !name.trim()) {
+      setSelectedStatus(null);
+      return;
+    }
+
+    if (currentPlayerRecord) {
+      setSelectedStatus(currentPlayerRecord.status);
+      return;
+    }
+
+    try {
+      const savedStatus = window.localStorage.getItem(
+        getStatusStorageKey(training.id, name),
+      );
+
+      if (isAttendanceStatus(savedStatus)) {
+        setSelectedStatus(savedStatus);
+      } else {
+        setSelectedStatus(null);
+      }
+    } catch (error) {
+      console.error("Attendance status loading error:", error);
+
+      setSelectedStatus(null);
+    }
+  }, [training, name, currentPlayerRecord]);
 
   const groupedAttendance = useMemo(() => {
     const sortByName = (records: AttendanceRecord[]) =>
@@ -280,17 +422,20 @@ export default function Training() {
     : "—";
 
   const isSubmitDisabled =
-    !training || !name.trim() || !selectedStatus || isSubmitting;
+    !training || name.trim().length < 2 || !selectedStatus || isSubmitting;
 
   async function reloadAttendance(trainingId: string) {
     const { data, error } = await supabase
       .from("training_attendance")
       .select("id, training_id, player_name, status, updated_at")
       .eq("training_id", trainingId)
-      .order("updated_at", { ascending: false });
+      .order("updated_at", {
+        ascending: false,
+      });
 
     if (error) {
       console.error("Attendance refresh error:", error);
+
       throw new Error("Не вдалося оновити список учасників.");
     }
 
@@ -313,28 +458,43 @@ export default function Training() {
     const normalizedName = name.trim();
 
     if (!training) {
-      setMessage("Активне тренування не знайдено.");
+      setFeedback({
+        type: "error",
+        title: "Тренування не знайдено",
+        description: "Активне тренування поки не додано.",
+      });
+
       return;
     }
 
     if (normalizedName.length < 2) {
-      setMessage("Ім’я повинно містити щонайменше 2 символи.");
+      setFeedback({
+        type: "error",
+        title: "Перевірте ім’я",
+        description: "Ім’я повинно містити щонайменше 2 символи.",
+      });
+
       return;
     }
 
     if (!selectedStatus) {
-      setMessage("Оберіть варіант участі.");
+      setFeedback({
+        type: "error",
+        title: "Оберіть відповідь",
+        description: "Вкажіть, чи будете ви на тренуванні.",
+      });
+
       return;
     }
 
     setIsSubmitting(true);
-    setMessage("");
+    setFeedback(emptyFeedback);
 
     try {
       const existingRecord = attendance.find(
         (record) =>
-          record.name.toLocaleLowerCase("uk") ===
-          normalizedName.toLocaleLowerCase("uk"),
+          normalizePlayerName(record.name) ===
+          normalizePlayerName(normalizedName),
       );
 
       if (existingRecord) {
@@ -351,8 +511,6 @@ export default function Training() {
         if (error) {
           throw error;
         }
-
-        setMessage("Вашу відповідь оновлено.");
       } else {
         const { error } = await supabase.from("training_attendance").insert({
           training_id: training.id,
@@ -364,61 +522,163 @@ export default function Training() {
           if (error.code === "23505") {
             await reloadAttendance(training.id);
 
-            setMessage(
-              "Таке ім’я вже є у списку. Спробуйте оновити відповідь ще раз.",
-            );
+            setFeedback({
+              type: "error",
+              title: "Ім’я вже є у списку",
+              description: "Спробуйте оновити відповідь ще раз.",
+            });
 
             return;
           }
 
           throw error;
         }
-
-        setMessage("Вашу відповідь збережено.");
       }
 
-      /*
-       * Realtime обновит все открытые страницы.
-       * Локально перечитываем данные сразу, чтобы пользователь
-       * моментально увидел результат даже при задержке подключения.
-       */
-      await reloadAttendance(training.id);
+      try {
+        window.localStorage.setItem(PLAYER_NAME_STORAGE_KEY, normalizedName);
 
-      setName("");
-      setSelectedStatus(null);
+        window.localStorage.setItem(
+          getStatusStorageKey(training.id, normalizedName),
+          selectedStatus,
+        );
+      } catch (storageError) {
+        console.error("Local storage saving error:", storageError);
+      }
+
+      setName(normalizedName);
+      setRememberedName(normalizedName);
+
+      setFeedback(getSuccessFeedback(selectedStatus, Boolean(existingRecord)));
+
+      await reloadAttendance(training.id);
     } catch (error) {
       console.error("Attendance submit error:", error);
 
-      setMessage("Не вдалося зберегти відповідь. Спробуйте ще раз.");
+      setFeedback({
+        type: "error",
+        title: "Не вдалося зберегти відповідь",
+        description: "Перевірте з’єднання з інтернетом та спробуйте ще раз.",
+      });
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  function handleNameChange(newName: string) {
+    setName(newName);
+    setFeedback(emptyFeedback);
+  }
+
+  function handleStatusSelect(status: AttendanceStatus) {
+    setSelectedStatus(status);
+    setFeedback(emptyFeedback);
+  }
+
   return (
     <section
-      id="training"
-      className="scroll-mt-24 bg-sky-50 px-6 py-24 text-slate-950 lg:px-10 lg:py-32"
+      id={isStandalone ? undefined : "training"}
+      className={
+        isStandalone
+          ? "min-h-screen bg-sky-50 px-4 py-5 text-slate-950 sm:px-6 sm:py-8 lg:px-10"
+          : "scroll-mt-24 bg-sky-50 px-6 py-24 text-slate-950 lg:px-10 lg:py-32"
+      }
     >
-      <div className="mx-auto max-w-7xl">
-        <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20">
+      <div className={isStandalone ? "mx-auto max-w-6xl" : "mx-auto max-w-7xl"}>
+        {isStandalone && (
+          <header className="mb-6 flex items-center justify-between gap-4 rounded-3xl bg-slate-950 px-4 py-4 text-white shadow-lg sm:px-7 sm:py-5">
+            <Link
+              href="/"
+              aria-label="Перейти на головну сторінку Олімп Футзал"
+              className="group flex min-w-0 items-center gap-3 sm:gap-4"
+            >
+              <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full transition duration-300 group-hover:scale-105 sm:h-16 sm:w-16">
+                <Image
+                  src="/images/olimp-logo.png"
+                  alt="Логотип СК Олімп Футзал"
+                  fill
+                  priority
+                  sizes="64px"
+                  className="object-contain"
+                />
+              </span>
+
+              <span className="min-w-0">
+                <span className="block text-[10px] font-black uppercase tracking-[0.25em] text-sky-300 sm:text-xs">
+                  СК Олімп
+                </span>
+
+                <span className="mt-1 block truncate text-lg font-black sm:text-2xl">
+                  Олімп Футзал
+                </span>
+              </span>
+            </Link>
+
+            <Link
+              href="/"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border border-white/15 px-4 py-2 text-sm font-black transition duration-300 hover:border-sky-400 hover:bg-sky-400 hover:text-slate-950 sm:px-6"
+            >
+              <span className="hidden sm:inline">На головну</span>
+
+              <span className="sm:hidden">Головна</span>
+            </Link>
+          </header>
+        )}
+
+        <div
+          className={`grid ${
+            isStandalone
+              ? "gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-8"
+              : "gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20"
+          }`}
+        >
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.28em] text-sky-600">
               Командний простір
             </p>
 
-            <h2 className="mt-5 text-4xl font-black leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+            <h1
+              className={`mt-4 font-black leading-tight tracking-tight ${
+                isStandalone
+                  ? "text-3xl sm:text-4xl lg:text-5xl"
+                  : "text-4xl sm:text-5xl lg:text-6xl"
+              }`}
+            >
               Найближче тренування
-            </h2>
+            </h1>
 
-            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
-              Вкажіть своє ім’я та підтвердьте участь. Повторна відповідь із
-              таким самим ім’ям оновить попередній вибір.
+            <p
+              className={`max-w-xl leading-8 text-slate-600 ${
+                isStandalone ? "mt-4 text-base sm:text-lg" : "mt-6 text-lg"
+              }`}
+            >
+              {isStandalone
+                ? "Вкажіть своє ім’я та підтвердьте участь. Повторна відповідь із таким самим ім’ям оновить попередній вибір."
+                : "Перегляньте інформацію про найближче тренування та підтвердьте свою участь. Для швидкого голосування відкрийте окрему сторінку тренування."}
             </p>
 
-            <div className="mt-10 overflow-hidden rounded-3xl bg-slate-950 p-7 text-white shadow-xl sm:p-9">
+            {!isStandalone && (
+              <Link
+                href="/training"
+                className="group mt-6 inline-flex min-h-12 items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-black text-white transition duration-300 hover:-translate-y-0.5 hover:bg-sky-500 hover:text-slate-950"
+              >
+                Відкрити сторінку тренування
+                <span
+                  aria-hidden="true"
+                  className="ml-2 transition-transform duration-300 group-hover:translate-x-1"
+                >
+                  →
+                </span>
+              </Link>
+            )}
+
+            <div
+              className={`overflow-hidden rounded-3xl bg-slate-950 text-white shadow-xl transition-shadow duration-300 hover:shadow-2xl ${
+                isStandalone ? "mt-6 p-6 sm:p-7" : "mt-10 p-7 sm:p-9"
+              }`}
+            >
               <div className="flex items-center gap-4">
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-400 text-slate-950">
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-400 text-slate-950 transition-transform duration-300 hover:rotate-3 hover:scale-105">
                   <PlayerIcon />
                 </span>
 
@@ -427,15 +687,19 @@ export default function Training() {
                     Наступна подія
                   </p>
 
-                  <h3 className="mt-1 text-xl font-black">
+                  <h2 className="mt-1 text-xl font-black">
                     {isLoading
                       ? "Завантаження..."
                       : (training?.title ?? "Тренування не додано")}
-                  </h3>
+                  </h2>
                 </div>
               </div>
 
-              <div className="mt-8 grid gap-5">
+              <div
+                className={`grid ${
+                  isStandalone ? "mt-6 gap-4 sm:grid-cols-3" : "mt-8 gap-5"
+                }`}
+              >
                 <div>
                   <span className="block text-sm text-slate-400">Дата</span>
 
@@ -463,7 +727,7 @@ export default function Training() {
                 </div>
               </div>
 
-              <div className="mt-8 flex items-center justify-between rounded-2xl bg-white/[0.06] px-5 py-4">
+              <div className="mt-6 flex items-center justify-between rounded-2xl bg-white/[0.06] px-5 py-4 transition-colors duration-300 hover:bg-white/[0.1]">
                 <span className="text-sm text-slate-300">Уже відповіли</span>
 
                 <strong className="text-2xl text-sky-400">
@@ -488,33 +752,62 @@ export default function Training() {
           <div>
             <form
               onSubmit={handleSubmit}
-              className="rounded-[2rem] border border-sky-100 bg-white p-6 shadow-xl shadow-sky-950/5 sm:p-9"
+              className={`rounded-[2rem] border border-sky-100 bg-white shadow-xl shadow-sky-950/5 transition-shadow duration-300 hover:shadow-2xl hover:shadow-sky-950/10 ${
+                isStandalone ? "p-5 sm:p-7" : "p-6 sm:p-9"
+              }`}
             >
+              {rememberedName && (
+                <div className="mb-6 rounded-2xl border border-sky-100 bg-sky-50 px-5 py-4">
+                  <p className="text-sm font-black text-sky-800">
+                    👋 Вітаємо, {rememberedName}!
+                  </p>
+
+                  {currentPlayerRecord && (
+                    <p className="mt-2 text-sm text-slate-600">
+                      Ваш поточний вибір:{" "}
+                      <strong className="text-slate-950">
+                        {
+                          statusOptions.find(
+                            (option) =>
+                              option.value === currentPlayerRecord.status,
+                          )?.label
+                        }
+                      </strong>
+                    </p>
+                  )}
+                </div>
+              )}
+
               <label
-                htmlFor="participant-name"
+                htmlFor={
+                  isStandalone
+                    ? "standalone-participant-name"
+                    : "participant-name"
+                }
                 className="text-sm font-black uppercase tracking-[0.18em] text-slate-600"
               >
                 Ваше ім’я
               </label>
 
               <input
-                id="participant-name"
+                id={
+                  isStandalone
+                    ? "standalone-participant-name"
+                    : "participant-name"
+                }
                 type="text"
                 value={name}
                 disabled={!training || isLoading || isSubmitting}
-                onChange={(event) => {
-                  setName(event.target.value);
-                  setMessage("");
-                }}
+                onChange={(event) => handleNameChange(event.target.value)}
                 placeholder="Наприклад, Олександр"
                 autoComplete="name"
                 minLength={2}
                 maxLength={60}
-                className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-base text-slate-950 outline-none transition duration-300 placeholder:text-slate-400 focus:-translate-y-0.5 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
               <fieldset
-                className="mt-8"
+                className="mt-7"
                 disabled={!training || isLoading || isSubmitting}
               >
                 <legend className="text-sm font-black uppercase tracking-[0.18em] text-slate-600">
@@ -529,17 +822,24 @@ export default function Training() {
                       <button
                         key={option.value}
                         type="button"
-                        onClick={() => {
-                          setSelectedStatus(option.value);
-                          setMessage("");
-                        }}
+                        onClick={() => handleStatusSelect(option.value)}
                         aria-pressed={isSelected}
-                        className={`min-h-14 rounded-2xl border px-4 py-3 text-sm font-black transition duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${
+                        className={`min-h-14 rounded-2xl border px-4 py-3 text-sm font-black transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60 ${
                           isSelected
-                            ? "scale-[1.02] border-sky-400 bg-sky-400 text-slate-950 shadow-lg shadow-sky-400/20"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-sky-300 hover:bg-sky-50"
+                            ? "scale-[1.03] border-sky-400 bg-sky-400 text-slate-950 shadow-lg shadow-sky-400/25"
+                            : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 hover:shadow-md"
                         }`}
                       >
+                        <span
+                          className={`mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs transition-all duration-300 ${
+                            isSelected
+                              ? "bg-slate-950 text-white"
+                              : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          {option.icon}
+                        </span>
+
                         {option.label}
                       </button>
                     );
@@ -550,39 +850,62 @@ export default function Training() {
               <button
                 type="submit"
                 disabled={isSubmitDisabled}
-                className="mt-7 inline-flex min-h-14 w-full items-center justify-center rounded-full bg-slate-950 px-7 py-4 text-base font-black text-white transition duration-300 enabled:hover:-translate-y-0.5 enabled:hover:bg-sky-500 enabled:hover:text-slate-950 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+                className="mt-7 inline-flex min-h-14 w-full items-center justify-center rounded-full bg-slate-950 px-7 py-4 text-base font-black text-white transition-all duration-300 enabled:hover:-translate-y-1 enabled:hover:bg-sky-500 enabled:hover:text-slate-950 enabled:hover:shadow-xl enabled:hover:shadow-sky-500/20 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
               >
-                {isSubmitting ? "Збереження..." : "Підтвердити участь"}
+                {isSubmitting
+                  ? "Збереження..."
+                  : currentPlayerRecord
+                    ? "Оновити відповідь"
+                    : "Підтвердити участь"}
               </button>
 
-              {message && (
-                <p
-                  role="status"
-                  className="mt-4 rounded-2xl bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800"
+              {feedback.type && (
+                <div
+                  role={feedback.type === "error" ? "alert" : "status"}
+                  className={`mt-5 overflow-hidden rounded-2xl border px-5 py-5 transition-all duration-300 ${
+                    feedback.type === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                      : "border-red-200 bg-red-50 text-red-900"
+                  }`}
                 >
-                  {message}
-                </p>
+                  <div className="flex items-start gap-4">
+                    <span
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl font-black ${
+                        feedback.type === "success"
+                          ? "animate-bounce bg-emerald-500 text-white"
+                          : "bg-red-500 text-white"
+                      }`}
+                    >
+                      {feedback.type === "success" ? "✓" : "!"}
+                    </span>
+
+                    <div>
+                      <p className="font-black">{feedback.title}</p>
+
+                      <p className="mt-1 text-sm leading-6 opacity-80">
+                        {feedback.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
             </form>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
               {statusOptions.map((option) => {
                 const records = groupedAttendance[option.value];
 
                 return (
                   <article
                     key={option.value}
-                    className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm"
+                    className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
                   >
                     <div className="flex items-center justify-between gap-4">
                       <h3 className="font-black text-slate-950">
                         {option.groupLabel}
                       </h3>
 
-                      <span
-                        key={records.length}
-                        className="flex h-9 min-w-9 items-center justify-center rounded-full bg-sky-100 px-3 text-sm font-black text-sky-700"
-                      >
+                      <span className="flex h-9 min-w-9 items-center justify-center rounded-full bg-sky-100 px-3 text-sm font-black text-sky-700 transition-all duration-300">
                         {records.length}
                       </span>
                     </div>
@@ -594,20 +917,77 @@ export default function Training() {
                         </p>
                       ) : records.length > 0 ? (
                         <ul className="space-y-3">
-                          {records.map((record) => (
-                            <li
-                              key={record.id}
-                              className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-3 text-sm font-bold text-slate-700"
-                            >
-                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">
-                                <PlayerIcon />
-                              </span>
+                          {records.map((record) => {
+                            const isCurrentPlayer =
+                              normalizePlayerName(record.name) ===
+                              normalizePlayerName(name);
 
-                              <span className="min-w-0 truncate">
-                                {record.name}
-                              </span>
-                            </li>
-                          ))}
+                            const formattedRecordUpdate =
+                              new Intl.DateTimeFormat("uk-UA", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: false,
+                                timeZone: "Europe/Kyiv",
+                              }).format(new Date(record.updatedAt));
+
+                            const recordStatusLabel =
+                              statusOptions.find(
+                                (statusOption) =>
+                                  statusOption.value === record.status,
+                              )?.label ?? "—";
+
+                            return (
+                              <li
+                                key={record.id}
+                                aria-label={`Гравець: ${record.name}. Відповідь: ${recordStatusLabel}. Оновлено: ${formattedRecordUpdate}`}
+                                tabIndex={0}
+                                className={`group/player relative flex cursor-help items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold outline-none transition-all duration-300 focus-visible:ring-2 focus-visible:ring-sky-400 ${
+                                  isCurrentPlayer
+                                    ? "bg-sky-100 text-sky-900 ring-2 ring-sky-200"
+                                    : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                                }`}
+                              >
+                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+                                  <PlayerIcon />
+                                </span>
+
+                                <span className="min-w-0 flex-1 truncate">
+                                  {record.name}
+                                </span>
+
+                                {isCurrentPlayer && (
+                                  <span className="ml-auto shrink-0 text-xs font-black uppercase tracking-wide text-sky-700">
+                                    Ви
+                                  </span>
+                                )}
+
+                                <span
+                                  role="tooltip"
+                                  className="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 z-30 hidden w-max max-w-[260px] -translate-x-1/2 rounded-xl bg-slate-950 px-4 py-3 text-left text-xs font-medium leading-5 text-white shadow-xl group-hover/player:block group-focus-within/player:block"
+                                >
+                                  <strong className="block text-sm font-black">
+                                    {record.name}
+                                  </strong>
+
+                                  <span className="mt-1 block text-slate-300">
+                                    Відповідь: {recordStatusLabel}
+                                  </span>
+
+                                  <span className="block text-slate-400">
+                                    Оновлено: {formattedRecordUpdate}
+                                  </span>
+
+                                  <span
+                                    aria-hidden="true"
+                                    className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-slate-950"
+                                  />
+                                </span>
+                              </li>
+                            );
+                          })}
                         </ul>
                       ) : (
                         <p className="text-sm leading-6 text-slate-400">
@@ -621,6 +1001,12 @@ export default function Training() {
             </div>
           </div>
         </div>
+
+        {isStandalone && (
+          <footer className="mt-8 text-center text-sm text-slate-500">
+            СК «Олімп Футзал» · Миколаїв
+          </footer>
+        )}
       </div>
     </section>
   );
