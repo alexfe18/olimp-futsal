@@ -12,11 +12,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin", "cyrillic"],
 });
 
-/*
- * Локально используется http://localhost:3000.
- * После публикации на Vercel мы добавим NEXT_PUBLIC_SITE_URL
- * с реальным адресом сайта.
- */
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
@@ -60,18 +55,34 @@ export const metadata: Metadata = {
     icon: [
       {
         url: "/favicon.ico",
+        sizes: "any",
       },
       {
-        url: "/images/olimp-logo.png",
+        url: "/icons/icon-192.png",
         type: "image/png",
+        sizes: "192x192",
+      },
+      {
+        url: "/icons/icon-512.png",
+        type: "image/png",
+        sizes: "512x512",
       },
     ],
+
     apple: [
       {
-        url: "/images/olimp-logo.png",
+        url: "/icons/apple-touch-icon.png",
         type: "image/png",
+        sizes: "180x180",
       },
     ],
+  },
+
+  appleWebApp: {
+    capable: true,
+    title: "Олімп Футзал",
+    statusBarStyle: "black-translucent",
+    startupImage: [],
   },
 
   openGraph: {
@@ -116,12 +127,14 @@ export const metadata: Metadata = {
 
   other: {
     "format-detection": "telephone=yes",
+    "mobile-web-app-capable": "yes",
   },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
   themeColor: "#020617",
   colorScheme: "light",
 };

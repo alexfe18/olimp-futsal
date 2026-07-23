@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PlayerSelect from "./PlayerSelect";
 import { statusOptions } from "./constants";
 import type { AttendanceStatus, FeedbackState, PlayerRecord } from "./types";
@@ -23,6 +23,15 @@ type TrainingFormProps = {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
+type PushState =
+  | "checking"
+  | "unsupported"
+  | "idle"
+  | "subscribing"
+  | "enabled"
+  | "denied"
+  | "error";
+
 function getFriendlyPlayerName(fullName: string) {
   const parts = fullName.trim().split(/\s+/);
 
@@ -31,6 +40,47 @@ function getFriendlyPlayerName(fullName: string) {
   }
 
   return fullName;
+}
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+
+  const rawData = window.atob(base64);
+
+  return Uint8Array.from(
+    [...rawData].map((character) => character.charCodeAt(0)),
+  );
+}
+
+async function savePushSubscription({
+  player,
+  subscription,
+}: {
+  player: PlayerRecord;
+  subscription: PushSubscription;
+}) {
+  const response = await fetch("/api/push/subscribe", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      playerId: player.id,
+      playerName: player.fullName,
+      subscription: subscription.toJSON(),
+    }),
+  });
+
+  const result = (await response.json()) as {
+    success?: boolean;
+    message?: string;
+  };
+
+  if (!response.ok || !result.success) {
+    throw new Error(result.message || "Не вдалося зберегти Push-підписку.");
+  }
 }
 
 export default function TrainingForm({
@@ -51,6 +101,10 @@ export default function TrainingForm({
 }: TrainingFormProps) {
   const [isProfileChangeOpen, setIsProfileChangeOpen] = useState(false);
 
+  const [pushState, setPushState] = useState<PushState>("checking");
+
+  const [pushMessage, setPushMessage] = useState("");
+
   const selectedPlayer = useMemo(
     () => players.find((player) => player.id === selectedPlayerId) ?? null,
     [players, selectedPlayerId],
@@ -63,6 +117,159 @@ export default function TrainingForm({
   const isFormDisabled = !hasTraining || isLoading || isSubmitting;
 
   const isProfileLocked = Boolean(currentStatus);
+
+  /*
+   * Проверяем поддержку Push и наличие уже созданной подписки.
+   * Если подписка существует, повторно связываем её с выбранным игроком.
+   */
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkPushSubscription() {
+      if (
+        typeof window === "undefined" ||
+        !("serviceWorker" in navigator) ||
+        !("PushManager" in window) ||
+        !("Notification" in window)
+      ) {
+        if (isMounted) {
+          setPushState("unsupported");
+        }
+
+        return;
+      }
+
+      if (Notification.permission === "denied") {
+        if (isMounted) {
+          setPushState("denied");
+        }
+
+        return;
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.ready;
+
+        const subscription = await registration.pushManager.getSubscription();
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (!subscription) {
+          setPushState("idle");
+          return;
+        }
+
+        setPushState("enabled");
+
+        /*
+         * Если профиль уже выбран, обновляем связь:
+         * устройство → текущий игрок.
+         */
+        if (selectedPlayer) {
+          try {
+            await savePushSubscription({
+              player: selectedPlayer,
+              subscription,
+            });
+          } catch (error) {
+            console.error("Push subscription sync error:", error);
+          }
+        }
+      } catch (error) {
+        console.error("Push status checking error:", error);
+
+        if (isMounted) {
+          setPushState("error");
+          setPushMessage("Не вдалося перевірити стан сповіщень.");
+        }
+      }
+    }
+
+    void checkPushSubscription();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedPlayer]);
+
+  async function handleEnablePush() {
+    if (!selectedPlayer) {
+      setPushState("error");
+      setPushMessage("Спочатку оберіть свій профіль у списку гравців.");
+      return;
+    }
+
+    const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+    if (!publicVapidKey) {
+      console.error("NEXT_PUBLIC_VAPID_PUBLIC_KEY is missing");
+
+      setPushState("error");
+      setPushMessage("Публічний ключ сповіщень не налаштовано.");
+      return;
+    }
+
+    if (
+      !("serviceWorker" in navigator) ||
+      !("PushManager" in window) ||
+      !("Notification" in window)
+    ) {
+      setPushState("unsupported");
+      return;
+    }
+
+    setPushState("subscribing");
+    setPushMessage("");
+
+    try {
+      const permission = await Notification.requestPermission();
+
+      if (permission === "denied") {
+        setPushState("denied");
+        setPushMessage(
+          "Доступ до сповіщень заборонено в налаштуваннях браузера.",
+        );
+        return;
+      }
+
+      if (permission !== "granted") {
+        setPushState("idle");
+        setPushMessage("Дозвіл на сповіщення поки не надано.");
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+
+      let subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
+        });
+      }
+
+      await savePushSubscription({
+        player: selectedPlayer,
+        subscription,
+      });
+
+      setPushState("enabled");
+      setPushMessage("Тепер ви отримуватимете новини про тренування.");
+    } catch (error) {
+      console.error("Push subscription error:", error);
+
+      setPushState("error");
+
+      setPushMessage(
+        error instanceof Error
+          ? error.message
+          : "Не вдалося підключити сповіщення.",
+      );
+    }
+  }
 
   function confirmProfileChange() {
     onClearPlayer();
@@ -216,6 +423,88 @@ export default function TrainingForm({
                 <p className="mt-1 text-sm leading-6 opacity-80">
                   {feedback.description}
                 </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedPlayer && (
+          <div className="mt-6 rounded-2xl border border-sky-200 bg-sky-50 px-5 py-5">
+            <div className="flex items-start gap-4">
+              <span
+                aria-hidden="true"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sky-500 text-xl text-white"
+              >
+                🔔
+              </span>
+
+              <div className="min-w-0 flex-1">
+                <p className="font-black text-slate-950">
+                  Сповіщення про тренування
+                </p>
+
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  Отримуйте повідомлення про нові тренування, зміни часу та
+                  скасування.
+                </p>
+
+                {pushState === "checking" && (
+                  <p className="mt-3 text-sm font-bold text-slate-500">
+                    Перевіряємо стан сповіщень...
+                  </p>
+                )}
+
+                {pushState === "unsupported" && (
+                  <p className="mt-3 text-sm font-bold text-amber-800">
+                    Цей браузер або пристрій не підтримує Push-сповіщення.
+                  </p>
+                )}
+
+                {pushState === "denied" && (
+                  <p className="mt-3 text-sm font-bold text-red-700">
+                    Сповіщення заблоковано. Дозвольте їх у налаштуваннях
+                    браузера або застосунку.
+                  </p>
+                )}
+
+                {pushState === "enabled" && (
+                  <p className="mt-3 text-sm font-black text-emerald-700">
+                    ✓ Сповіщення увімкнені
+                  </p>
+                )}
+
+                {pushMessage && (
+                  <p
+                    className={`mt-2 text-sm leading-6 ${
+                      pushState === "error" || pushState === "denied"
+                        ? "font-bold text-red-700"
+                        : "text-slate-600"
+                    }`}
+                  >
+                    {pushMessage}
+                  </p>
+                )}
+
+                {(pushState === "idle" || pushState === "error") && (
+                  <button
+                    type="button"
+                    onClick={handleEnablePush}
+                    disabled={!selectedPlayer}
+                    className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-sky-500 px-5 py-2.5 text-sm font-black text-slate-950 transition hover:-translate-y-0.5 hover:bg-slate-950 hover:text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+                  >
+                    Увімкнути сповіщення
+                  </button>
+                )}
+
+                {pushState === "subscribing" && (
+                  <button
+                    type="button"
+                    disabled
+                    className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-slate-300 px-5 py-2.5 text-sm font-black text-slate-600"
+                  >
+                    Підключення...
+                  </button>
+                )}
               </div>
             </div>
           </div>
