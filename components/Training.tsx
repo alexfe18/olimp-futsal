@@ -1,31 +1,24 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 type AttendanceStatus = "yes" | "maybe" | "no";
 
+type TrainingRecord = {
+  id: string;
+  title: string;
+  startsAt: string;
+  location: string;
+};
+
 type AttendanceRecord = {
   id: string;
+  trainingId: string;
   name: string;
   status: AttendanceStatus;
   updatedAt: string;
 };
-
-/*
- * ДАННЫЕ БЛИЖАЙШЕЙ ТРЕНИРОВКИ
- *
- * Пока обновляем вручную только этот объект.
- * Для каждой новой тренировки обязательно меняй id.
- */
-const trainingDetails = {
-  id: "2026-07-23-1900",
-  title: "Командне тренування",
-  date: "23 липня",
-  time: "19:00",
-  location: "ФОК Олімп",
-};
-
-const STORAGE_KEY = `olimp-futsal-attendance-${trainingDetails.id}`;
 
 const statusOptions: Array<{
   value: AttendanceStatus;
@@ -86,39 +79,150 @@ function PlayerIcon() {
 }
 
 export default function Training() {
+  const [training, setTraining] = useState<TrainingRecord | null>(null);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+
   const [name, setName] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<AttendanceStatus | null>(
     null,
   );
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+
   const [message, setMessage] = useState("");
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    try {
-      const savedAttendance = localStorage.getItem(STORAGE_KEY);
+    let isMounted = true;
 
-      if (savedAttendance) {
-        const parsedAttendance = JSON.parse(
-          savedAttendance,
-        ) as AttendanceRecord[];
-
-        setAttendance(parsedAttendance);
+    async function loadTrainingData(showLoader = false) {
+      if (showLoader) {
+        setIsLoading(true);
       }
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-    } finally {
-      setIsLoaded(true);
+
+      setLoadError("");
+
+      const { data: trainingData, error: trainingError } = await supabase
+        .from("trainings")
+        .select("id, title, starts_at, location")
+        .eq("is_active", true)
+        .order("starts_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (trainingError) {
+        console.error("Training loading error:", trainingError);
+        setLoadError("Не вдалося завантажити дані тренування.");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!trainingData) {
+        setTraining(null);
+        setAttendance([]);
+        setLoadError("Активне тренування поки не додано.");
+        setIsLoading(false);
+        return;
+      }
+
+      const normalizedTraining: TrainingRecord = {
+        id: trainingData.id,
+        title: trainingData.title,
+        startsAt: trainingData.starts_at,
+        location: trainingData.location,
+      };
+
+      setTraining(normalizedTraining);
+
+      const { data: attendanceData, error: attendanceError } = await supabase
+        .from("training_attendance")
+        .select("id, training_id, player_name, status, updated_at")
+        .eq("training_id", trainingData.id)
+        .order("updated_at", { ascending: false });
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (attendanceError) {
+        console.error("Attendance loading error:", attendanceError);
+
+        setLoadError("Не вдалося завантажити відповіді учасників.");
+        setAttendance([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const normalizedAttendance: AttendanceRecord[] = (
+        attendanceData ?? []
+      ).map((record) => ({
+        id: record.id,
+        trainingId: record.training_id,
+        name: record.player_name,
+        status: record.status as AttendanceStatus,
+        updatedAt: record.updated_at,
+      }));
+
+      setAttendance(normalizedAttendance);
+      setIsLoading(false);
     }
+
+    void loadTrainingData(true);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadTrainingData();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    const realtimeChannel = supabase
+      .channel("olimp-training-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "trainings",
+        },
+        () => {
+          void loadTrainingData();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "training_attendance",
+        },
+        () => {
+          void loadTrainingData();
+        },
+      )
+      .subscribe((status, error) => {
+        if (error) {
+          console.error("Realtime subscription error:", error);
+        }
+
+        if (status === "SUBSCRIBED") {
+          console.log("Supabase Realtime connected");
+        }
+      });
+
+    return () => {
+      isMounted = false;
+
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+
+      void supabase.removeChannel(realtimeChannel);
+    };
   }, []);
-
-  useEffect(() => {
-    if (!isLoaded) {
-      return;
-    }
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(attendance));
-  }, [attendance, isLoaded]);
 
   const groupedAttendance = useMemo(() => {
     const sortByName = (records: AttendanceRecord[]) =>
@@ -154,18 +258,67 @@ export default function Training() {
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: "Europe/Kyiv",
       }).format(new Date(latestUpdate))
     : null;
 
-  const isSubmitDisabled = !name.trim() || !selectedStatus;
+  const formattedTrainingDate = training
+    ? new Intl.DateTimeFormat("uk-UA", {
+        day: "numeric",
+        month: "long",
+        timeZone: "Europe/Kyiv",
+      }).format(new Date(training.startsAt))
+    : "—";
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const formattedTrainingTime = training
+    ? new Intl.DateTimeFormat("uk-UA", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: "Europe/Kyiv",
+      }).format(new Date(training.startsAt))
+    : "—";
+
+  const isSubmitDisabled =
+    !training || !name.trim() || !selectedStatus || isSubmitting;
+
+  async function reloadAttendance(trainingId: string) {
+    const { data, error } = await supabase
+      .from("training_attendance")
+      .select("id, training_id, player_name, status, updated_at")
+      .eq("training_id", trainingId)
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      console.error("Attendance refresh error:", error);
+      throw new Error("Не вдалося оновити список учасників.");
+    }
+
+    const normalizedAttendance: AttendanceRecord[] = (data ?? []).map(
+      (record) => ({
+        id: record.id,
+        trainingId: record.training_id,
+        name: record.player_name,
+        status: record.status as AttendanceStatus,
+        updatedAt: record.updated_at,
+      }),
+    );
+
+    setAttendance(normalizedAttendance);
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const normalizedName = name.trim();
 
-    if (!normalizedName) {
-      setMessage("Вкажіть, будь ласка, ваше ім’я.");
+    if (!training) {
+      setMessage("Активне тренування не знайдено.");
+      return;
+    }
+
+    if (normalizedName.length < 2) {
+      setMessage("Ім’я повинно містити щонайменше 2 символи.");
       return;
     }
 
@@ -174,43 +327,73 @@ export default function Training() {
       return;
     }
 
-    const existingRecord = attendance.find(
-      (record) =>
-        record.name.toLocaleLowerCase("uk") ===
-        normalizedName.toLocaleLowerCase("uk"),
-    );
+    setIsSubmitting(true);
+    setMessage("");
 
-    if (existingRecord) {
-      setAttendance((currentAttendance) =>
-        currentAttendance.map((record) =>
-          record.id === existingRecord.id
-            ? {
-                ...record,
-                name: normalizedName,
-                status: selectedStatus,
-                updatedAt: new Date().toISOString(),
-              }
-            : record,
-        ),
+    try {
+      const existingRecord = attendance.find(
+        (record) =>
+          record.name.toLocaleLowerCase("uk") ===
+          normalizedName.toLocaleLowerCase("uk"),
       );
 
-      setMessage("Вашу відповідь оновлено.");
-    } else {
-      const newRecord: AttendanceRecord = {
-        id: crypto.randomUUID(),
-        name: normalizedName,
-        status: selectedStatus,
-        updatedAt: new Date().toISOString(),
-      };
+      if (existingRecord) {
+        const { error } = await supabase
+          .from("training_attendance")
+          .update({
+            player_name: normalizedName,
+            status: selectedStatus,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingRecord.id)
+          .eq("training_id", training.id);
 
-      setAttendance((currentAttendance) => [...currentAttendance, newRecord]);
+        if (error) {
+          throw error;
+        }
 
-      setMessage("Вашу відповідь збережено.");
+        setMessage("Вашу відповідь оновлено.");
+      } else {
+        const { error } = await supabase.from("training_attendance").insert({
+          training_id: training.id,
+          player_name: normalizedName,
+          status: selectedStatus,
+        });
+
+        if (error) {
+          if (error.code === "23505") {
+            await reloadAttendance(training.id);
+
+            setMessage(
+              "Таке ім’я вже є у списку. Спробуйте оновити відповідь ще раз.",
+            );
+
+            return;
+          }
+
+          throw error;
+        }
+
+        setMessage("Вашу відповідь збережено.");
+      }
+
+      /*
+       * Realtime обновит все открытые страницы.
+       * Локально перечитываем данные сразу, чтобы пользователь
+       * моментально увидел результат даже при задержке подключения.
+       */
+      await reloadAttendance(training.id);
+
+      setName("");
+      setSelectedStatus(null);
+    } catch (error) {
+      console.error("Attendance submit error:", error);
+
+      setMessage("Не вдалося зберегти відповідь. Спробуйте ще раз.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setName("");
-    setSelectedStatus(null);
-  };
+  }
 
   return (
     <section
@@ -245,7 +428,9 @@ export default function Training() {
                   </p>
 
                   <h3 className="mt-1 text-xl font-black">
-                    {trainingDetails.title}
+                    {isLoading
+                      ? "Завантаження..."
+                      : (training?.title ?? "Тренування не додано")}
                   </h3>
                 </div>
               </div>
@@ -253,22 +438,27 @@ export default function Training() {
               <div className="mt-8 grid gap-5">
                 <div>
                   <span className="block text-sm text-slate-400">Дата</span>
-                  <strong className="mt-1 block text-xl">
-                    {trainingDetails.date}
+
+                  <strong className="mt-1 block text-xl capitalize">
+                    {isLoading ? "Завантаження..." : formattedTrainingDate}
                   </strong>
                 </div>
 
                 <div>
                   <span className="block text-sm text-slate-400">Час</span>
+
                   <strong className="mt-1 block text-xl">
-                    {trainingDetails.time}
+                    {isLoading ? "Завантаження..." : formattedTrainingTime}
                   </strong>
                 </div>
 
                 <div>
                   <span className="block text-sm text-slate-400">Місце</span>
+
                   <strong className="mt-1 block text-xl">
-                    {trainingDetails.location}
+                    {isLoading
+                      ? "Завантаження..."
+                      : (training?.location ?? "—")}
                   </strong>
                 </div>
               </div>
@@ -284,6 +474,12 @@ export default function Training() {
               {formattedLatestUpdate && (
                 <p className="mt-4 text-sm text-slate-400">
                   Останнє оновлення: {formattedLatestUpdate}
+                </p>
+              )}
+
+              {loadError && (
+                <p className="mt-4 rounded-2xl bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+                  {loadError}
                 </p>
               )}
             </div>
@@ -305,16 +501,22 @@ export default function Training() {
                 id="participant-name"
                 type="text"
                 value={name}
+                disabled={!training || isLoading || isSubmitting}
                 onChange={(event) => {
                   setName(event.target.value);
                   setMessage("");
                 }}
                 placeholder="Наприклад, Олександр"
                 autoComplete="name"
-                className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                minLength={2}
+                maxLength={60}
+                className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
-              <fieldset className="mt-8">
+              <fieldset
+                className="mt-8"
+                disabled={!training || isLoading || isSubmitting}
+              >
                 <legend className="text-sm font-black uppercase tracking-[0.18em] text-slate-600">
                   Ваша відповідь
                 </legend>
@@ -332,7 +534,7 @@ export default function Training() {
                           setMessage("");
                         }}
                         aria-pressed={isSelected}
-                        className={`min-h-14 rounded-2xl border px-4 py-3 text-sm font-black transition duration-200 ${
+                        className={`min-h-14 rounded-2xl border px-4 py-3 text-sm font-black transition duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${
                           isSelected
                             ? "scale-[1.02] border-sky-400 bg-sky-400 text-slate-950 shadow-lg shadow-sky-400/20"
                             : "border-slate-200 bg-white text-slate-700 hover:border-sky-300 hover:bg-sky-50"
@@ -350,7 +552,7 @@ export default function Training() {
                 disabled={isSubmitDisabled}
                 className="mt-7 inline-flex min-h-14 w-full items-center justify-center rounded-full bg-slate-950 px-7 py-4 text-base font-black text-white transition duration-300 enabled:hover:-translate-y-0.5 enabled:hover:bg-sky-500 enabled:hover:text-slate-950 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
               >
-                Підтвердити участь
+                {isSubmitting ? "Збереження..." : "Підтвердити участь"}
               </button>
 
               {message && (
@@ -386,7 +588,11 @@ export default function Training() {
                     </div>
 
                     <div className="mt-5">
-                      {records.length > 0 ? (
+                      {isLoading ? (
+                        <p className="text-sm leading-6 text-slate-400">
+                          Завантаження...
+                        </p>
+                      ) : records.length > 0 ? (
                         <ul className="space-y-3">
                           {records.map((record) => (
                             <li
