@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 
     const body = (await request.json()) as SendPushRequest;
 
-    const title = body.title?.trim() || "СК Олімп Футзал";
+    const title = body.title?.trim() || "Олімп Футзал";
 
     const message = body.body?.trim() || "Нове повідомлення від команди.";
 
@@ -128,6 +128,8 @@ export async function POST(request: Request) {
       icon: "/icons/icon-192.png",
       badge: "/icons/notification-icon-64.png",
       tag: "olimp-futsal-training",
+      vibrate: [250, 100, 250],
+      requireInteraction: true,
     });
 
     let sent = 0;
