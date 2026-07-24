@@ -608,7 +608,7 @@ export default function Training({ variant = "section" }: TrainingProps) {
               <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full transition duration-300 group-hover:scale-105">
                 <Image
                   src="/images/olimp-logo.png"
-                  alt="Логотип СК Олімп Футзал"
+                  alt="Логотип Олімп Футзал"
                   fill
                   priority
                   sizes="64px"
@@ -618,7 +618,7 @@ export default function Training({ variant = "section" }: TrainingProps) {
 
               <span className="min-w-0">
                 <span className="block text-[10px] font-black uppercase tracking-[0.25em] text-sky-300 sm:text-xs">
-                  СК Олімп
+                  Разом до Вершин
                 </span>
 
                 <span className="mt-1 block truncate text-lg font-black sm:text-2xl">

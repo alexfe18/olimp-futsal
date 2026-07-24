@@ -12,7 +12,7 @@ type SendResult = {
   message?: string;
 };
 
-const DEFAULT_TITLE = "СК Олімп Футзал";
+const DEFAULT_TITLE = "Олімп Футзал";
 const DEFAULT_BODY = "Тестове Push-сповіщення працює! ⚽";
 const DEFAULT_URL = "/training";
 

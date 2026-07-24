@@ -3,7 +3,7 @@ import Training from "@/components/Training";
 
 export const metadata: Metadata = {
   title: "Підтвердження участі у тренуванні",
-  description: "Підтвердьте участь у найближчому тренуванні СК Олімп Футзал.",
+  description: "Підтвердьте участь у найближчому тренуванні Олімп Футзал.",
   robots: {
     index: false,
     follow: false,

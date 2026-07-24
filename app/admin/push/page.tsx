@@ -17,7 +17,7 @@ export default function AdminPushPage() {
         <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-300">
-              СК Олімп Футзал
+              Олімп Футзал
             </p>
             <h1 className="mt-2 text-3xl font-black sm:text-4xl">
               Push-сповіщення

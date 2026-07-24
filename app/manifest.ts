@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "СК Олімп Футзал",
+    name: "Олімп Футзал",
     short_name: "Олімп Футзал",
     description:
       "Командний застосунок СК «Олімп Футзал» для тренувань, відвідуваності та сповіщень.",
