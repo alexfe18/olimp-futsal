@@ -2,22 +2,64 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState, type MouseEvent } from "react";
 
-const navigation = [
-  { label: "Про клуб", href: "#about", id: "about" },
-  { label: "Історія", href: "#history", id: "history" },
+type NavigationItem = {
+  label: string;
+  href: string;
+  id: string;
+  type: "section" | "page";
+};
+
+const navigation: NavigationItem[] = [
+  {
+    label: "Про клуб",
+    href: "/#about",
+    id: "about",
+    type: "section",
+  },
+  {
+    label: "Історія",
+    href: "/#history",
+    id: "history",
+    type: "section",
+  },
   {
     label: "Досягнення",
-    href: "#achievements",
+    href: "/#achievements",
     id: "achievements",
+    type: "section",
   },
-  { label: "Тренування", href: "/training", id: "training" },
-  { label: "Галерея", href: "#gallery", id: "gallery" },
-  { label: "Контакти", href: "#contacts", id: "contacts" },
+  {
+    label: "Тренування",
+    href: "/training",
+    id: "training",
+    type: "page",
+  },
+  {
+    label: "Новини",
+    href: "/news",
+    id: "news",
+    type: "page",
+  },
+  {
+    label: "Галерея",
+    href: "/gallery",
+    id: "gallery",
+    type: "page",
+  },
+  {
+    label: "Контакти",
+    href: "/#contacts",
+    id: "contacts",
+    type: "section",
+  },
 ];
 
 export default function Header() {
+  const pathname = usePathname();
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
@@ -29,6 +71,11 @@ export default function Header() {
 
       setIsScrolled(scrollPosition > 20);
 
+      if (pathname !== "/") {
+        setActiveSection("");
+        return;
+      }
+
       if (scrollPosition < 250) {
         setActiveSection("");
         return;
@@ -37,6 +84,10 @@ export default function Header() {
       let currentSection = "";
 
       for (const item of navigation) {
+        if (item.type !== "section") {
+          continue;
+        }
+
         const section = document.getElementById(item.id);
 
         if (section && section.offsetTop <= activationPoint) {
@@ -59,7 +110,7 @@ export default function Header() {
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleScroll);
     };
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? "hidden" : "";
@@ -69,8 +120,46 @@ export default function Header() {
     };
   }, [isMenuOpen]);
 
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [pathname]);
+
   const closeMenu = () => {
     setIsMenuOpen(false);
+  };
+
+  const handleNavigationClick = (
+    event: MouseEvent<HTMLAnchorElement>,
+    item: NavigationItem,
+  ) => {
+    closeMenu();
+
+    if (item.type !== "section" || pathname !== "/") {
+      return;
+    }
+
+    const section = document.getElementById(item.id);
+
+    if (!section) {
+      return;
+    }
+
+    event.preventDefault();
+
+    section.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+
+    window.history.replaceState(null, "", `/#${item.id}`);
+  };
+
+  const isItemActive = (item: NavigationItem) => {
+    if (item.type === "section") {
+      return pathname === "/" && activeSection === item.id;
+    }
+
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
   };
 
   return (
@@ -121,15 +210,16 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Меню тільки для desktop від 1024 px */}
-        <nav className="hidden items-center gap-6 text-sm font-semibold text-white lg:flex xl:gap-8">
+        {/* Desktop menu */}
+        <nav className="hidden items-center gap-5 text-sm font-semibold text-white lg:flex xl:gap-7">
           {navigation.map((item) => {
-            const isActive = activeSection === item.id;
+            const isActive = isItemActive(item);
 
             return (
-              <a
-                key={item.href}
+              <Link
+                key={item.id}
                 href={item.href}
+                onClick={(event) => handleNavigationClick(event, item)}
                 className={`relative whitespace-nowrap py-2 transition-colors duration-300 ${
                   isActive ? "text-sky-300" : "text-white hover:text-sky-300"
                 }`}
@@ -141,12 +231,12 @@ export default function Header() {
                     isActive ? "scale-x-100" : "scale-x-0"
                   }`}
                 />
-              </a>
+              </Link>
             );
           })}
         </nav>
 
-        {/* Гамбургер для mobile + tablet */}
+        {/* Mobile and tablet menu button */}
         <button
           type="button"
           aria-label={isMenuOpen ? "Закрити меню" : "Відкрити меню"}
@@ -180,29 +270,29 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Mobile + tablet menu */}
+      {/* Mobile and tablet menu */}
       <div
         className={`relative overflow-hidden bg-slate-950/98 backdrop-blur-xl transition-all duration-500 ease-in-out lg:hidden ${
           isMenuOpen
-            ? "max-h-[650px] opacity-100"
+            ? "max-h-[760px] opacity-100"
             : "pointer-events-none max-h-0 opacity-0"
         }`}
       >
         <nav className="flex max-h-[calc(100svh-80px)] flex-col overflow-y-auto px-6 pb-8 pt-3">
           {navigation.map((item) => {
-            const isActive = activeSection === item.id;
+            const isActive = isItemActive(item);
 
             return (
-              <a
-                key={item.href}
+              <Link
+                key={item.id}
                 href={item.href}
-                onClick={closeMenu}
+                onClick={(event) => handleNavigationClick(event, item)}
                 className={`border-b border-white/10 py-4 text-lg font-bold transition ${
                   isActive ? "text-sky-300" : "text-white hover:text-sky-300"
                 }`}
               >
                 {item.label}
-              </a>
+              </Link>
             );
           })}
         </nav>

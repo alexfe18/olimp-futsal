@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Image from "next/image";
 
 export default function Hero() {
@@ -12,16 +13,9 @@ export default function Hero() {
         className="object-cover object-[64%_center] sm:object-[60%_center] lg:object-center"
       />
 
-      {/* Затемнення зліва */}
       <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/65 to-slate-950/5 lg:via-slate-950/55 lg:to-transparent" />
-
-      {/* Затемнення знизу */}
       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/5 to-slate-950/10" />
-
-      {/* Мобільний контраст */}
       <div className="absolute inset-0 bg-slate-950/10 lg:hidden" />
-
-      {/* Декоративне світіння */}
       <div className="absolute -left-32 top-1/3 h-80 w-80 rounded-full bg-sky-400/10 blur-3xl" />
 
       <div className="relative z-10 mx-auto flex w-full max-w-7xl items-start px-6 pb-14 pt-28 sm:px-8 sm:pb-20 sm:pt-32 md:pb-24 md:pt-32 lg:min-h-screen lg:items-center lg:px-10 lg:pb-24 lg:pt-32">
@@ -40,31 +34,29 @@ export default function Hero() {
           </p>
 
           <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:mt-10 sm:max-w-none sm:flex-row sm:gap-4">
-            <a
-              href="#about"
-              className="inline-flex min-h-14 items-center justify-center rounded-full bg-sky-400 px-7 py-4 text-center text-base font-black text-slate-950 shadow-[0_12px_40px_rgba(56,189,248,0.28)] transition duration-300 hover:-translate-y-0.5 hover:bg-sky-300 hover:shadow-[0_16px_45px_rgba(56,189,248,0.38)] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+            <Link
+              href="/#about"
+              className="inline-flex min-h-14 items-center justify-center rounded-full bg-sky-400 px-7 py-4 text-center text-base font-black text-slate-950 shadow-[0_12px_40px_rgba(56,189,248,0.28)] transition duration-300 hover:-translate-y-0.5 hover:bg-sky-300 hover:shadow-[0_16px_45px_rgba(56,189,248,0.38)]"
             >
               Дізнатися про клуб
-            </a>
+            </Link>
 
-            <a
-              href="#gallery"
-              className="inline-flex min-h-14 items-center justify-center rounded-full border border-white/35 bg-white/10 px-7 py-4 text-center text-base font-black text-white backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:border-white/60 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            <Link
+              href="/gallery"
+              className="inline-flex min-h-14 items-center justify-center rounded-full border border-white/35 bg-white/10 px-7 py-4 text-center text-base font-black text-white backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:border-white/60 hover:bg-white/20"
             >
               Переглянути фото
-            </a>
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Тільки desktop, щоб на планшеті не створював зайву висоту */}
       <a
         href="#stats"
         aria-label="Прокрутити до статистики"
         className="absolute bottom-8 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-white/65 transition hover:text-white lg:flex"
       >
         <span>Гортати</span>
-
         <span className="flex h-10 w-6 justify-center rounded-full border border-white/35 pt-2">
           <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-300" />
         </span>

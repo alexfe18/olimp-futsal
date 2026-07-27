@@ -1,12 +1,14 @@
 import Image from "next/image";
+import Link from "next/link";
 
 const footerNavigation = [
-  { label: "Про клуб", href: "#about" },
-  { label: "Історія", href: "#history" },
-  { label: "Досягнення", href: "#achievements" },
-  { label: "Тренування", href: "#training" },
-  { label: "Галерея", href: "#gallery" },
-  { label: "Контакти", href: "#contacts" },
+  { label: "Про клуб", href: "/#about" },
+  { label: "Історія", href: "/#history" },
+  { label: "Досягнення", href: "/#achievements" },
+  { label: "Тренування", href: "/training" },
+  { label: "Новини", href: "/news" },
+  { label: "Галерея", href: "/gallery" },
+  { label: "Контакти", href: "/#contacts" },
 ];
 
 const socialLinks = [
@@ -30,7 +32,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-12 border-b border-white/10 pb-14 md:grid-cols-2 lg:grid-cols-[1.2fr_0.7fr_0.8fr]">
           <div>
-            <a href="#" className="inline-flex items-center gap-4">
+            <Link href="/" className="inline-flex items-center gap-4">
               <Image
                 src="/images/olimp-logo.png"
                 alt="Олімп Футзал"
@@ -48,7 +50,7 @@ export default function Footer() {
                   Разом до вершин
                 </span>
               </div>
-            </a>
+            </Link>
 
             <p className="mt-7 max-w-md leading-7 text-slate-400">
               Футзальний проєкт із Миколаєва, який об’єднує досвід, молодість,
@@ -81,13 +83,13 @@ export default function Footer() {
 
             <nav className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-1">
               {footerNavigation.map((item) => (
-                <a
+                <Link
                   key={item.href}
                   href={item.href}
                   className="w-fit font-bold text-slate-300 transition hover:translate-x-1 hover:text-white"
                 >
                   {item.label}
-                </a>
+                </Link>
               ))}
             </nav>
           </div>

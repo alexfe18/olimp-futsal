@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 const photos = [
   {
@@ -188,14 +189,12 @@ export default function Gallery() {
           </div>
 
           <div className="mt-12 flex justify-center">
-            <a
-              href="https://www.instagram.com/olimp_futsal_myko/"
-              target="_blank"
-              rel="noreferrer"
+            <Link
+              href="/gallery"
               className="inline-flex min-h-14 items-center justify-center rounded-full border border-white/20 bg-white/10 px-8 py-4 font-black text-white backdrop-blur transition duration-300 hover:-translate-y-0.5 hover:border-sky-400 hover:bg-sky-400 hover:text-slate-950"
             >
-              Більше фото в Instagram
-            </a>
+              Переглянути всю галерею
+            </Link>
           </div>
         </div>
       </section>
