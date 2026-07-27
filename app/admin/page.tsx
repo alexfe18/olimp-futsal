@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 type TrainingStatus = "scheduled" | "cancelled" | "completed";
@@ -14,51 +13,35 @@ type TrainingRow = {
   location: string;
   is_active: boolean;
   status: TrainingStatus;
-  cancellation_reason: string | null;
-  created_at: string;
-  updated_at: string;
 };
 
 type AttendanceRow = {
   training_id: string;
+  status: "yes" | "maybe" | "no";
 };
 
-type TrainingForm = {
-  id: string | null;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  activateAfterSaving: boolean;
+type PlayerRow = {
+  id: string;
+  is_active: boolean;
 };
 
-const emptyTrainingForm: TrainingForm = {
-  id: null,
-  title: "Командне тренування",
-  date: "",
-  time: "19:00",
-  location: "ФОК Олімп",
-  activateAfterSaving: false,
+type DashboardStats = {
+  trainings: number;
+  activePlayers: number;
+  answers: number;
+  yes: number;
+  maybe: number;
+  no: number;
 };
 
-function getDateInputValue(isoDate: string) {
-  const date = new Date(isoDate);
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-function getTimeInputValue(isoDate: string) {
-  const date = new Date(isoDate);
-
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-
-  return `${hours}:${minutes}`;
-}
+const emptyStats: DashboardStats = {
+  trainings: 0,
+  activePlayers: 0,
+  answers: 0,
+  yes: 0,
+  maybe: 0,
+  no: 0,
+};
 
 function formatTrainingDate(isoDate: string) {
   return new Intl.DateTimeFormat("uk-UA", {
@@ -78,131 +61,95 @@ function formatTrainingTime(isoDate: string) {
   }).format(new Date(isoDate));
 }
 
-function getStatusLabel(status: TrainingStatus) {
-  if (status === "cancelled") {
-    return "Скасовано";
-  }
+export default function AdminDashboardPage() {
+  const [activeTraining, setActiveTraining] = useState<TrainingRow | null>(
+    null,
+  );
 
-  if (status === "completed") {
-    return "Завершено";
-  }
+  const [attendance, setAttendance] = useState<AttendanceRow[]>([]);
 
-  return "Заплановано";
-}
-
-export default function AdminPage() {
-  const router = useRouter();
-
-  const [adminEmail, setAdminEmail] = useState("");
-
-  const [trainings, setTrainings] = useState<TrainingRow[]>([]);
-
-  const [attendanceCounts, setAttendanceCounts] = useState<
-    Record<string, number>
-  >({});
-
-  const [form, setForm] = useState<TrainingForm>(emptyTrainingForm);
-
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-
-  const [message, setMessage] = useState("");
-
-  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+  const [stats, setStats] = useState<DashboardStats>(emptyStats);
 
   const [isLoading, setIsLoading] = useState(true);
 
-  const [isSaving, setIsSaving] = useState(false);
-
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  const [processingTrainingId, setProcessingTrainingId] = useState<
-    string | null
-  >(null);
-
-  async function loadAdminData(showLoader = false) {
-    if (showLoader) {
-      setIsLoading(true);
-    }
-
-    const { data: trainingData, error: trainingError } = await supabase
-      .from("trainings")
-      .select(
-        "id, title, starts_at, location, is_active, status, cancellation_reason, created_at, updated_at",
-      )
-      .order("starts_at", {
-        ascending: false,
-      });
-
-    if (trainingError) {
-      console.error("Trainings loading error:", trainingError);
-
-      setMessage("Не вдалося завантажити список тренувань.");
-      setMessageType("error");
-      setIsLoading(false);
-      return;
-    }
-
-    const { data: attendanceData, error: attendanceError } = await supabase
-      .from("training_attendance")
-      .select("training_id");
-
-    if (attendanceError) {
-      console.error("Attendance counts loading error:", attendanceError);
-
-      setMessage("Не вдалося завантажити статистику відповідей.");
-      setMessageType("error");
-      setIsLoading(false);
-      return;
-    }
-
-    const counts = ((attendanceData ?? []) as AttendanceRow[]).reduce<
-      Record<string, number>
-    >((result, record) => {
-      result[record.training_id] = (result[record.training_id] ?? 0) + 1;
-
-      return result;
-    }, {});
-
-    setTrainings((trainingData ?? []) as TrainingRow[]);
-    setAttendanceCounts(counts);
-    setIsLoading(false);
-  }
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     let isMounted = true;
 
-    async function initializeAdmin() {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+    async function loadDashboard() {
+      setLoadError("");
+
+      const [
+        { data: trainingsData, error: trainingsError },
+        { data: playersData, error: playersError },
+        { data: attendanceData, error: attendanceError },
+      ] = await Promise.all([
+        supabase
+          .from("trainings")
+          .select("id, title, starts_at, location, is_active, status")
+          .order("starts_at", {
+            ascending: false,
+          }),
+
+        supabase.from("players").select("id, is_active").eq("is_active", true),
+
+        supabase.from("training_attendance").select("training_id, status"),
+      ]);
 
       if (!isMounted) {
         return;
       }
 
-      if (error || !session) {
-        router.replace("/admin/login");
+      if (trainingsError || playersError || attendanceError) {
+        console.error("Dashboard loading error:", {
+          trainingsError,
+          playersError,
+          attendanceError,
+        });
+
+        setLoadError("Не вдалося повністю завантажити дані адмін-панелі.");
+
+        setIsLoading(false);
         return;
       }
 
-      setAdminEmail(session.user.email ?? "");
+      const trainings = (trainingsData ?? []) as TrainingRow[];
 
-      await loadAdminData(true);
+      const players = (playersData ?? []) as PlayerRow[];
+
+      const attendanceRecords = (attendanceData ?? []) as AttendanceRow[];
+
+      const currentTraining =
+        trainings.find((training) => training.is_active) ?? null;
+
+      const currentAttendance = currentTraining
+        ? attendanceRecords.filter(
+            (record) => record.training_id === currentTraining.id,
+          )
+        : [];
+
+      setActiveTraining(currentTraining);
+      setAttendance(currentAttendance);
+
+      setStats({
+        trainings: trainings.length,
+        activePlayers: players.length,
+        answers: currentAttendance.length,
+        yes: currentAttendance.filter((record) => record.status === "yes")
+          .length,
+        maybe: currentAttendance.filter((record) => record.status === "maybe")
+          .length,
+        no: currentAttendance.filter((record) => record.status === "no").length,
+      });
+
+      setIsLoading(false);
     }
 
-    void initializeAdmin();
-
-    const {
-      data: { subscription: authSubscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" || !session) {
-        router.replace("/admin/login");
-      }
-    });
+    void loadDashboard();
 
     const realtimeChannel = supabase
-      .channel("olimp-admin-realtime")
+      .channel("olimp-admin-dashboard-realtime")
       .on(
         "postgres_changes",
         {
@@ -211,7 +158,7 @@ export default function AdminPage() {
           table: "trainings",
         },
         () => {
-          void loadAdminData();
+          void loadDashboard();
         },
       )
       .on(
@@ -222,816 +169,297 @@ export default function AdminPage() {
           table: "training_attendance",
         },
         () => {
-          void loadAdminData();
+          void loadDashboard();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "players",
+        },
+        () => {
+          void loadDashboard();
         },
       )
       .subscribe();
 
     return () => {
       isMounted = false;
-      authSubscription.unsubscribe();
-
       void supabase.removeChannel(realtimeChannel);
     };
-  }, [router]);
+  }, []);
 
-  const activeTraining = useMemo(
-    () => trainings.find((training) => training.is_active) ?? null,
-    [trainings],
+  const unansweredPlayers = useMemo(
+    () => Math.max(stats.activePlayers - stats.answers, 0),
+    [stats.activePlayers, stats.answers],
   );
-
-  const totalAnswers = useMemo(
-    () =>
-      Object.values(attendanceCounts).reduce(
-        (total, count) => total + count,
-        0,
-      ),
-    [attendanceCounts],
-  );
-
-  function openCreateForm() {
-    setForm(emptyTrainingForm);
-    setIsEditorOpen(true);
-    setMessage("");
-    setMessageType("");
-  }
-
-  function openEditForm(training: TrainingRow) {
-    setForm({
-      id: training.id,
-      title: training.title,
-      date: getDateInputValue(training.starts_at),
-      time: getTimeInputValue(training.starts_at),
-      location: training.location,
-      activateAfterSaving: training.is_active,
-    });
-
-    setIsEditorOpen(true);
-    setMessage("");
-    setMessageType("");
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  }
-
-  function closeEditor() {
-    if (isSaving) {
-      return;
-    }
-
-    setIsEditorOpen(false);
-    setForm(emptyTrainingForm);
-  }
-
-  async function activateTraining(trainingId: string) {
-    setProcessingTrainingId(trainingId);
-    setMessage("");
-    setMessageType("");
-
-    const { error } = await supabase.rpc("activate_training", {
-      target_training_id: trainingId,
-    });
-
-    if (error) {
-      console.error("Training activation error:", error);
-
-      setMessage("Не вдалося активувати тренування.");
-      setMessageType("error");
-      setProcessingTrainingId(null);
-      return;
-    }
-
-    setMessage("Тренування успішно активовано.");
-    setMessageType("success");
-
-    await loadAdminData();
-    setProcessingTrainingId(null);
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const normalizedTitle = form.title.trim();
-
-    const normalizedLocation = form.location.trim();
-
-    if (!normalizedTitle || !form.date || !form.time || !normalizedLocation) {
-      setMessage("Заповніть усі обов’язкові поля.");
-      setMessageType("error");
-      return;
-    }
-
-    const startsAt = new Date(`${form.date}T${form.time}:00`);
-
-    if (Number.isNaN(startsAt.getTime())) {
-      setMessage("Перевірте дату та час тренування.");
-      setMessageType("error");
-      return;
-    }
-
-    setIsSaving(true);
-    setMessage("");
-    setMessageType("");
-
-    try {
-      let savedTrainingId = form.id;
-
-      if (form.id) {
-        const { error } = await supabase
-          .from("trainings")
-          .update({
-            title: normalizedTitle,
-            starts_at: startsAt.toISOString(),
-            location: normalizedLocation,
-          })
-          .eq("id", form.id);
-
-        if (error) {
-          throw error;
-        }
-      } else {
-        const { data, error } = await supabase
-          .from("trainings")
-          .insert({
-            title: normalizedTitle,
-            starts_at: startsAt.toISOString(),
-            location: normalizedLocation,
-            is_active: false,
-            status: "scheduled",
-            cancellation_reason: null,
-          })
-          .select("id")
-          .single();
-
-        if (error) {
-          throw error;
-        }
-
-        savedTrainingId = data.id;
-      }
-
-      if (form.activateAfterSaving && savedTrainingId) {
-        const { error } = await supabase.rpc("activate_training", {
-          target_training_id: savedTrainingId,
-        });
-
-        if (error) {
-          throw error;
-        }
-      }
-
-      setMessage(
-        form.id
-          ? "Тренування успішно оновлено."
-          : "Нове тренування успішно створено.",
-      );
-
-      setMessageType("success");
-      setIsEditorOpen(false);
-      setForm(emptyTrainingForm);
-
-      await loadAdminData();
-    } catch (error) {
-      console.error("Training saving error:", error);
-
-      setMessage("Не вдалося зберегти тренування. Перевірте введені дані.");
-      setMessageType("error");
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  async function cancelTraining(training: TrainingRow) {
-    const reason = window.prompt(
-      "Вкажіть причину скасування тренування:",
-      training.cancellation_reason ?? "",
-    );
-
-    if (reason === null) {
-      return;
-    }
-
-    const normalizedReason = reason.trim();
-
-    if (!normalizedReason) {
-      setMessage("Вкажіть причину скасування тренування.");
-      setMessageType("error");
-      return;
-    }
-
-    const isConfirmed = window.confirm(
-      `Скасувати тренування «${training.title}»?\n\nПричина: ${normalizedReason}`,
-    );
-
-    if (!isConfirmed) {
-      return;
-    }
-
-    setProcessingTrainingId(training.id);
-    setMessage("");
-    setMessageType("");
-
-    const { error } = await supabase
-      .from("trainings")
-      .update({
-        status: "cancelled",
-        cancellation_reason: normalizedReason,
-      })
-      .eq("id", training.id);
-
-    if (error) {
-      console.error("Training cancellation error:", error);
-
-      setMessage("Не вдалося скасувати тренування.");
-      setMessageType("error");
-      setProcessingTrainingId(null);
-      return;
-    }
-
-    setMessage("Тренування скасовано. Відповіді учасників збережено.");
-    setMessageType("success");
-
-    await loadAdminData();
-    setProcessingTrainingId(null);
-  }
-
-  async function restoreTraining(training: TrainingRow) {
-    const isConfirmed = window.confirm(
-      `Відновити тренування «${training.title}»?`,
-    );
-
-    if (!isConfirmed) {
-      return;
-    }
-
-    setProcessingTrainingId(training.id);
-    setMessage("");
-    setMessageType("");
-
-    const { error } = await supabase
-      .from("trainings")
-      .update({
-        status: "scheduled",
-        cancellation_reason: null,
-      })
-      .eq("id", training.id);
-
-    if (error) {
-      console.error("Training restoration error:", error);
-
-      setMessage("Не вдалося відновити тренування.");
-      setMessageType("error");
-      setProcessingTrainingId(null);
-      return;
-    }
-
-    setMessage("Тренування відновлено.");
-    setMessageType("success");
-
-    await loadAdminData();
-    setProcessingTrainingId(null);
-  }
-
-  async function deleteTraining(training: TrainingRow) {
-    const answersCount = attendanceCounts[training.id] ?? 0;
-
-    const confirmationText = answersCount
-      ? `Видалити тренування «${training.title}» та ${answersCount} пов’язаних відповідей?`
-      : `Видалити тренування «${training.title}»?`;
-
-    const isConfirmed = window.confirm(confirmationText);
-
-    if (!isConfirmed) {
-      return;
-    }
-
-    setProcessingTrainingId(training.id);
-    setMessage("");
-    setMessageType("");
-
-    const { error } = await supabase
-      .from("trainings")
-      .delete()
-      .eq("id", training.id);
-
-    if (error) {
-      console.error("Training deletion error:", error);
-
-      setMessage("Не вдалося видалити тренування.");
-      setMessageType("error");
-      setProcessingTrainingId(null);
-      return;
-    }
-
-    if (form.id === training.id) {
-      setIsEditorOpen(false);
-      setForm(emptyTrainingForm);
-    }
-
-    setMessage("Тренування видалено.");
-    setMessageType("success");
-
-    await loadAdminData();
-    setProcessingTrainingId(null);
-  }
-
-  async function handleLogout() {
-    setIsLoggingOut(true);
-
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      console.error("Admin logout error:", error);
-
-      setMessage("Не вдалося вийти з облікового запису.");
-      setMessageType("error");
-      setIsLoggingOut(false);
-      return;
-    }
-
-    router.replace("/admin/login");
-  }
 
   if (isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-100 px-6">
+      <div className="flex min-h-[60vh] items-center justify-center">
         <p className="text-sm font-black uppercase tracking-[0.22em] text-sky-700">
-          Завантаження адмін-панелі...
+          Завантаження огляду...
         </p>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-6 text-slate-950 sm:px-8 sm:py-8 lg:px-12">
-      <div className="mx-auto max-w-7xl">
-        <header className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-xl sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+    <div>
+      <header className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-xl sm:p-8">
+        <p className="text-xs font-black uppercase tracking-[0.28em] text-sky-400">
+          Олімп Футзал
+        </p>
+
+        <div className="mt-3 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="text-3xl font-black sm:text-4xl">Огляд клубу</h1>
+
+            <p className="mt-3 max-w-2xl leading-7 text-slate-300">
+              Керуйте тренуваннями, гравцями, відвідуваністю та сповіщеннями з
+              єдиного кабінету.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/admin/trainings"
+              className="inline-flex min-h-12 items-center justify-center rounded-full bg-sky-400 px-6 py-3 font-black text-slate-950 transition hover:-translate-y-0.5 hover:bg-sky-300"
+            >
+              + Нове тренування
+            </Link>
+
+            <Link
+              href="/admin/push"
+              className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-6 py-3 font-black transition hover:border-sky-400 hover:text-sky-300"
+            >
+              Надіслати Push
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {loadError && (
+        <p className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 font-bold text-red-800">
+          {loadError}
+        </p>
+      )}
+
+      <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-bold text-slate-500">Активні гравці</p>
+
+          <strong className="mt-3 block text-4xl font-black text-sky-600">
+            {stats.activePlayers}
+          </strong>
+        </article>
+
+        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-bold text-slate-500">Усього тренувань</p>
+
+          <strong className="mt-3 block text-4xl font-black text-sky-600">
+            {stats.trainings}
+          </strong>
+        </article>
+
+        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-bold text-slate-500">Відповіли</p>
+
+          <strong className="mt-3 block text-4xl font-black text-emerald-600">
+            {stats.answers}
+          </strong>
+        </article>
+
+        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-bold text-slate-500">Не відповіли</p>
+
+          <strong className="mt-3 block text-4xl font-black text-amber-600">
+            {unansweredPlayers}
+          </strong>
+        </article>
+      </section>
+
+      {activeTraining ? (
+        <section
+          className={`mt-8 overflow-hidden rounded-[2rem] p-6 text-white shadow-xl sm:p-8 ${
+            activeTraining.status === "cancelled"
+              ? "bg-red-950"
+              : "bg-slate-950"
+          }`}
+        >
+          <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.28em] text-sky-400">
-                Олімп Футзал
+              <p className="text-xs font-black uppercase tracking-[0.25em] text-sky-400">
+                Найближче тренування
               </p>
 
-              <h1 className="mt-3 text-3xl font-black sm:text-4xl">
-                Панель управління
-              </h1>
+              <h2 className="mt-3 text-3xl font-black">
+                {activeTraining.title}
+              </h2>
 
-              {adminEmail && (
-                <p className="mt-2 text-sm text-slate-400">
-                  Адміністратор: {adminEmail}
-                </p>
-              )}
+              <p className="mt-4 text-lg leading-8 text-slate-300">
+                {formatTrainingDate(activeTraining.starts_at)}
+                {" · "}
+                {formatTrainingTime(activeTraining.starts_at)}
+                {" · "}
+                {activeTraining.location}
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-2 text-sm font-black">
+                <span className="rounded-full bg-emerald-400/15 px-4 py-2 text-emerald-200">
+                  Будуть: {stats.yes}
+                </span>
+
+                <span className="rounded-full bg-amber-400/15 px-4 py-2 text-amber-200">
+                  Можливо: {stats.maybe}
+                </span>
+
+                <span className="rounded-full bg-red-400/15 px-4 py-2 text-red-200">
+                  Не будуть: {stats.no}
+                </span>
+
+                <span className="rounded-full bg-white/10 px-4 py-2 text-slate-200">
+                  Не відповіли: {unansweredPlayers}
+                </span>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={openCreateForm}
-                className="inline-flex min-h-11 items-center justify-center rounded-full bg-sky-400 px-5 py-3 text-sm font-black text-slate-950 transition hover:-translate-y-0.5 hover:bg-sky-300"
+            <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+              <Link
+                href="/admin/trainings"
+                className="inline-flex min-h-12 items-center justify-center rounded-full bg-sky-400 px-6 py-3 font-black text-slate-950 transition hover:bg-sky-300"
               >
-                + Нове тренування
-              </button>
+                Керувати тренуванням
+              </Link>
 
               <Link
                 href="/training"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-5 py-3 text-sm font-black transition hover:border-sky-400 hover:text-sky-300"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-6 py-3 font-black transition hover:border-sky-400 hover:text-sky-300"
               >
                 Відкрити сторінку
               </Link>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isLoggingOut ? "Вихід..." : "Вийти"}
-              </button>
             </div>
           </div>
-        </header>
+        </section>
+      ) : (
+        <section className="mt-8 rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center">
+          <p className="text-lg font-black">Активне тренування не вибрано</p>
 
-        {message && (
-          <p
-            role="status"
-            className={`mt-6 rounded-2xl px-5 py-4 text-sm font-bold ${
-              messageType === "success"
-                ? "bg-emerald-100 text-emerald-900"
-                : "bg-red-100 text-red-900"
-            }`}
-          >
-            {message}
+          <p className="mt-2 text-slate-500">
+            Створіть нове тренування або активуйте існуюче.
           </p>
-        )}
 
-        {isEditorOpen && (
-          <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-950/5 sm:p-9">
-            <div className="flex items-start justify-between gap-5">
-              <div>
-                <p className="text-sm font-black uppercase tracking-[0.22em] text-sky-600">
-                  {form.id ? "Редагування події" : "Створення події"}
-                </p>
-
-                <h2 className="mt-3 text-3xl font-black">
-                  {form.id ? "Редагувати тренування" : "Нове тренування"}
-                </h2>
-              </div>
-
-              <button
-                type="button"
-                onClick={closeEditor}
-                aria-label="Закрити форму"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-2xl font-bold transition hover:bg-slate-200"
-              >
-                ×
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="mt-8">
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="md:col-span-2">
-                  <label
-                    htmlFor="training-title"
-                    className="text-sm font-black uppercase tracking-[0.16em] text-slate-600"
-                  >
-                    Назва
-                  </label>
-
-                  <input
-                    id="training-title"
-                    type="text"
-                    value={form.title}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        title: event.target.value,
-                      })
-                    }
-                    maxLength={100}
-                    className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="training-date"
-                    className="text-sm font-black uppercase tracking-[0.16em] text-slate-600"
-                  >
-                    Дата
-                  </label>
-
-                  <input
-                    id="training-date"
-                    type="date"
-                    value={form.date}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        date: event.target.value,
-                      })
-                    }
-                    className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="training-time"
-                    className="text-sm font-black uppercase tracking-[0.16em] text-slate-600"
-                  >
-                    Час
-                  </label>
-
-                  <input
-                    id="training-time"
-                    type="time"
-                    value={form.time}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        time: event.target.value,
-                      })
-                    }
-                    className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label
-                    htmlFor="training-location"
-                    className="text-sm font-black uppercase tracking-[0.16em] text-slate-600"
-                  >
-                    Місце
-                  </label>
-
-                  <input
-                    id="training-location"
-                    type="text"
-                    value={form.location}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        location: event.target.value,
-                      })
-                    }
-                    maxLength={150}
-                    className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
-                  />
-                </div>
-
-                <label className="md:col-span-2 flex cursor-pointer items-center justify-between gap-5 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-                  <span>
-                    <span className="block font-black">Зробити активним</span>
-
-                    <span className="mt-1 block text-sm text-slate-500">
-                      Після збереження ця подія відображатиметься на сторінці
-                      тренування.
-                    </span>
-                  </span>
-
-                  <input
-                    type="checkbox"
-                    checked={form.activateAfterSaving}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        activateAfterSaving: event.target.checked,
-                      })
-                    }
-                    className="h-6 w-6 shrink-0 accent-sky-500"
-                  />
-                </label>
-              </div>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="inline-flex min-h-14 flex-1 items-center justify-center rounded-full bg-slate-950 px-7 py-4 font-black text-white transition enabled:hover:-translate-y-0.5 enabled:hover:bg-sky-500 enabled:hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSaving
-                    ? "Збереження..."
-                    : form.id
-                      ? "Зберегти зміни"
-                      : "Створити тренування"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={closeEditor}
-                  disabled={isSaving}
-                  className="inline-flex min-h-14 items-center justify-center rounded-full border border-slate-300 px-7 py-4 font-black text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
-                >
-                  Скасувати
-                </button>
-              </div>
-            </form>
-          </section>
-        )}
-
-        <section className="mt-8 grid gap-4 sm:grid-cols-3">
-          <article className="rounded-3xl bg-white p-6 shadow-sm">
-            <p className="text-sm font-bold text-slate-500">Усього тренувань</p>
-
-            <strong className="mt-3 block text-4xl font-black text-sky-600">
-              {trainings.length}
-            </strong>
-          </article>
-
-          <article className="rounded-3xl bg-white p-6 shadow-sm">
-            <p className="text-sm font-bold text-slate-500">Активна подія</p>
-
-            <strong className="mt-3 block text-xl font-black">
-              {activeTraining
-                ? formatTrainingDate(activeTraining.starts_at)
-                : "Не вибрана"}
-            </strong>
-          </article>
-
-          <article className="rounded-3xl bg-white p-6 shadow-sm">
-            <p className="text-sm font-bold text-slate-500">
-              Усього відповідей
-            </p>
-
-            <strong className="mt-3 block text-4xl font-black text-sky-600">
-              {totalAnswers}
-            </strong>
-          </article>
-        </section>
-
-        {activeTraining && (
-          <section
-            className={`mt-8 overflow-hidden rounded-[2rem] p-6 text-white shadow-xl sm:p-8 ${
-              activeTraining.status === "cancelled"
-                ? "bg-red-950"
-                : "bg-slate-950"
-            }`}
+          <Link
+            href="/admin/trainings"
+            className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full bg-slate-950 px-6 py-3 font-black text-white transition hover:bg-sky-500 hover:text-slate-950"
           >
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-xs font-black uppercase tracking-[0.25em] text-sky-400">
-                    Активна подія
-                  </p>
-
-                  {activeTraining.status === "cancelled" && (
-                    <span className="rounded-full bg-red-400/15 px-3 py-1 text-xs font-black uppercase tracking-wide text-red-200">
-                      Скасовано
-                    </span>
-                  )}
-                </div>
-
-                <h2 className="mt-3 text-3xl font-black">
-                  {activeTraining.title}
-                </h2>
-
-                <p className="mt-4 text-lg text-slate-300">
-                  {formatTrainingDate(activeTraining.starts_at)}
-                  {" · "}
-                  {formatTrainingTime(activeTraining.starts_at)}
-                  {" · "}
-                  {activeTraining.location}
-                </p>
-
-                {activeTraining.status === "cancelled" &&
-                  activeTraining.cancellation_reason && (
-                    <p className="mt-4 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 font-bold text-red-100">
-                      Причина: {activeTraining.cancellation_reason}
-                    </p>
-                  )}
-
-                <p className="mt-3 text-sm text-slate-400">
-                  Уже відповіли: {attendanceCounts[activeTraining.id] ?? 0}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => openEditForm(activeTraining)}
-                className="inline-flex min-h-12 items-center justify-center rounded-full bg-sky-400 px-6 py-3 font-black text-slate-950 transition hover:bg-sky-300"
-              >
-                Редагувати
-              </button>
-            </div>
-          </section>
-        )}
-
-        <section className="mt-8">
-          <div className="flex items-end justify-between gap-5">
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.22em] text-sky-600">
-                Календар
-              </p>
-
-              <h2 className="mt-2 text-3xl font-black">Усі тренування</h2>
-            </div>
-
-            <button
-              type="button"
-              onClick={openCreateForm}
-              className="hidden min-h-11 items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-500 hover:text-slate-950 sm:inline-flex"
-            >
-              + Додати
-            </button>
-          </div>
-
-          {trainings.length > 0 ? (
-            <div className="mt-6 grid gap-5 lg:grid-cols-2">
-              {trainings.map((training) => {
-                const isProcessing = processingTrainingId === training.id;
-
-                return (
-                  <article
-                    key={training.id}
-                    className={`rounded-3xl border bg-white p-6 shadow-sm ${
-                      training.status === "cancelled"
-                        ? "border-red-300 ring-4 ring-red-100"
-                        : training.is_active
-                          ? "border-sky-400 ring-4 ring-sky-100"
-                          : "border-slate-200"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-5">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {training.is_active && (
-                            <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-black uppercase tracking-wide text-sky-700">
-                              Активна
-                            </span>
-                          )}
-
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${
-                              training.status === "cancelled"
-                                ? "bg-red-100 text-red-700"
-                                : training.status === "completed"
-                                  ? "bg-slate-200 text-slate-700"
-                                  : "bg-emerald-100 text-emerald-700"
-                            }`}
-                          >
-                            {getStatusLabel(training.status)}
-                          </span>
-
-                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                            Відповідей: {attendanceCounts[training.id] ?? 0}
-                          </span>
-                        </div>
-
-                        <h3 className="mt-4 text-xl font-black">
-                          {training.title}
-                        </h3>
-
-                        <p className="mt-3 leading-7 text-slate-600">
-                          {formatTrainingDate(training.starts_at)}
-                          <br />
-                          {formatTrainingTime(training.starts_at)}
-                          {" · "}
-                          {training.location}
-                        </p>
-
-                        {training.status === "cancelled" &&
-                          training.cancellation_reason && (
-                            <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold leading-6 text-red-800">
-                              Причина скасування: {training.cancellation_reason}
-                            </p>
-                          )}
-                      </div>
-                    </div>
-
-                    <div className="mt-6 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEditForm(training)}
-                        disabled={isProcessing}
-                        className="inline-flex min-h-10 items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white transition hover:bg-sky-500 hover:text-slate-950 disabled:opacity-50"
-                      >
-                        Редагувати
-                      </button>
-
-                      {!training.is_active &&
-                        training.status !== "cancelled" && (
-                          <button
-                            type="button"
-                            onClick={() => activateTraining(training.id)}
-                            disabled={isProcessing}
-                            className="inline-flex min-h-10 items-center justify-center rounded-full bg-sky-100 px-4 py-2 text-sm font-black text-sky-800 transition hover:bg-sky-200 disabled:opacity-50"
-                          >
-                            {isProcessing ? "Обробка..." : "Зробити активною"}
-                          </button>
-                        )}
-
-                      {training.status === "scheduled" ? (
-                        <button
-                          type="button"
-                          onClick={() => cancelTraining(training)}
-                          disabled={isProcessing}
-                          className="inline-flex min-h-10 items-center justify-center rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-black text-amber-800 transition hover:bg-amber-100 disabled:opacity-50"
-                        >
-                          Скасувати
-                        </button>
-                      ) : training.status === "cancelled" ? (
-                        <button
-                          type="button"
-                          onClick={() => restoreTraining(training)}
-                          disabled={isProcessing}
-                          className="inline-flex min-h-10 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-50"
-                        >
-                          Відновити
-                        </button>
-                      ) : null}
-
-                      <button
-                        type="button"
-                        onClick={() => deleteTraining(training)}
-                        disabled={isProcessing}
-                        className="inline-flex min-h-10 items-center justify-center rounded-full border border-red-200 px-4 py-2 text-sm font-black text-red-700 transition hover:bg-red-50 disabled:opacity-50"
-                      >
-                        Видалити
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="mt-6 rounded-3xl bg-white p-8 text-center shadow-sm">
-              <p className="font-bold text-slate-600">Тренувань поки немає.</p>
-
-              <button
-                type="button"
-                onClick={openCreateForm}
-                className="mt-5 rounded-full bg-slate-950 px-6 py-3 font-black text-white"
-              >
-                Створити перше тренування
-              </button>
-            </div>
-          )}
+            Перейти до тренувань
+          </Link>
         </section>
-      </div>
-    </main>
+      )}
+
+      <section className="mt-8">
+        <div>
+          <p className="text-sm font-black uppercase tracking-[0.22em] text-sky-600">
+            Швидкий доступ
+          </p>
+
+          <h2 className="mt-2 text-3xl font-black">Розділи кабінету</h2>
+        </div>
+
+        <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          <AdminModuleCard
+            href="/admin/trainings"
+            icon="📅"
+            title="Тренування"
+            description="Створення, редагування, активація та скасування."
+          />
+
+          <AdminModuleCard
+            href="/admin/players"
+            icon="👥"
+            title="Гравці"
+            description="Склад команди, номери, позиції та статуси."
+          />
+
+          <AdminModuleCard
+            href="/admin/attendance"
+            icon="📊"
+            title="Відвідуваність"
+            description="Відповіді гравців і списки по тренуваннях."
+          />
+
+          <AdminModuleCard
+            href="/admin/statistics"
+            icon="📈"
+            title="Статистика"
+            description="Відсоток відвідуваності та дисципліна."
+          />
+
+          <AdminModuleCard
+            href="/admin/push"
+            icon="📢"
+            title="Push"
+            description="Командні та персональні сповіщення."
+          />
+
+          <AdminModuleCard
+            href="/admin/news"
+            icon="📝"
+            title="Новини"
+            description="Створення та публікація новин клубу."
+          />
+
+          <AdminModuleCard
+            href="/admin/gallery"
+            icon="🖼️"
+            title="Галерея"
+            description="Фотографії, альбоми та матеріали клубу."
+          />
+
+          <AdminModuleCard
+            href="/admin/settings"
+            icon="⚙️"
+            title="Налаштування"
+            description="Дані клубу та параметри застосунку."
+          />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function AdminModuleCard({
+  href,
+  icon,
+  title,
+  description,
+}: {
+  href: string;
+  icon: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-sky-300 hover:shadow-xl"
+    >
+      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-100 text-2xl transition group-hover:bg-sky-400">
+        {icon}
+      </span>
+
+      <h3 className="mt-5 text-xl font-black">{title}</h3>
+
+      <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
+
+      <span className="mt-5 inline-flex text-sm font-black text-sky-700">
+        Відкрити →
+      </span>
+    </Link>
   );
 }
