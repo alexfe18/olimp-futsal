@@ -789,7 +789,19 @@ export default function TrainingPlanBuilder({
                               }}
                               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-sky-400 px-5 text-sm font-black text-slate-950 transition hover:bg-sky-300 disabled:cursor-wait disabled:opacity-50"
                             >
-                              <span aria-hidden="true">👁</span>
+                              <svg
+                                aria-hidden="true"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="h-5 w-5 shrink-0"
+                              >
+                                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
                               Переглянути вправу
                             </button>
                             {resolveExerciseId(block, exercises) ? (
