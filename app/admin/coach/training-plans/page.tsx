@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/lib/supabase";
@@ -10,6 +11,10 @@ import {
   statusClasses,
   statusLabels,
 } from "./components/options";
+import {
+  createTrainingTemplateFromPlan,
+  duplicateTrainingPlan,
+} from "./components/training-plan-service";
 import type {
   TrainingPlanIntensity,
   TrainingPlanListRow,
@@ -41,6 +46,7 @@ function formatUpdatedAt(value: string) {
 }
 
 export default function TrainingPlansPage() {
+  const router = useRouter();
   const [plans, setPlans] = useState<TrainingPlanListRow[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -48,11 +54,15 @@ export default function TrainingPlansPage() {
     useState<IntensityFilter>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+  const [templatingId, setTemplatingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const loadPlans = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
+    setSuccessMessage(null);
 
     const { data, error } = await supabase
       .from("training_plans")
@@ -166,6 +176,74 @@ export default function TrainingPlansPage() {
     setDeletingId(null);
   }
 
+  async function handleDuplicate(plan: TrainingPlanListRow) {
+    const requestedTitle = window.prompt(
+      "Назва копії плану",
+      `Копія — ${plan.title}`,
+    );
+
+    if (requestedTitle === null) return;
+
+    if (!requestedTitle.trim()) {
+      setErrorMessage("Вкажіть назву копії плану.");
+      return;
+    }
+
+    setDuplicatingId(plan.id);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      const planId = await duplicateTrainingPlan(plan.id, requestedTitle);
+      router.push(`/admin/coach/training-plans/${planId}`);
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
+      setErrorMessage(`Не вдалося дублювати план. ${text}`);
+      setDuplicatingId(null);
+    }
+  }
+
+  async function handleCreateTemplate(plan: TrainingPlanListRow) {
+    const requestedTitle = window.prompt(
+      "Назва нового шаблону",
+      `Шаблон — ${plan.title}`,
+    );
+
+    if (requestedTitle === null) return;
+
+    if (!requestedTitle.trim()) {
+      setErrorMessage("Вкажіть назву шаблону.");
+      return;
+    }
+
+    setTemplatingId(plan.id);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      const templateId = await createTrainingTemplateFromPlan(
+        plan.id,
+        requestedTitle,
+      );
+      setTemplatingId(null);
+
+      if (
+        window.confirm(
+          "Шаблон створено. Відкрити його для перевірки та редагування?",
+        )
+      ) {
+        router.push(`/admin/coach/training-templates/${templateId}`);
+        return;
+      }
+
+      setSuccessMessage(`Шаблон «${requestedTitle.trim()}» створено.`);
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
+      setErrorMessage(`Не вдалося створити шаблон. ${text}`);
+      setTemplatingId(null);
+    }
+  }
+
   function resetFilters() {
     setSearch("");
     setStatusFilter("all");
@@ -195,13 +273,21 @@ export default function TrainingPlansPage() {
               </p>
             </div>
 
-            <Link
-              href="/admin/coach/training-plans/new"
-              className="inline-flex min-h-13 shrink-0 items-center justify-center gap-2 rounded-full bg-sky-400 px-6 py-3 font-black text-slate-950 transition hover:-translate-y-0.5 hover:bg-sky-300"
-            >
-              <span aria-hidden="true">＋</span>
-              Створити план
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/admin/coach/training-templates"
+                className="inline-flex min-h-13 shrink-0 items-center justify-center rounded-full border border-white/15 px-6 py-3 font-black text-white transition hover:-translate-y-0.5 hover:border-sky-400 hover:text-sky-300"
+              >
+                Шаблони тренувань
+              </Link>
+              <Link
+                href="/admin/coach/training-plans/new"
+                className="inline-flex min-h-13 shrink-0 items-center justify-center gap-2 rounded-full bg-sky-400 px-6 py-3 font-black text-slate-950 transition hover:-translate-y-0.5 hover:bg-sky-300"
+              >
+                <span aria-hidden="true">＋</span>
+                Створити план
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -215,6 +301,15 @@ export default function TrainingPlansPage() {
             suffix=" хв"
           />
         </section>
+
+        {successMessage ? (
+          <div
+            role="status"
+            className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 font-bold text-emerald-800"
+          >
+            {successMessage}
+          </div>
+        ) : null}
 
         {errorMessage ? (
           <div role="alert" className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-rose-800">
@@ -322,7 +417,11 @@ export default function TrainingPlansPage() {
                 key={plan.id}
                 plan={plan}
                 isDeleting={deletingId === plan.id}
+                isDuplicating={duplicatingId === plan.id}
+                isTemplating={templatingId === plan.id}
                 onDelete={() => void handleDelete(plan)}
+                onDuplicate={() => void handleDuplicate(plan)}
+                onCreateTemplate={() => void handleCreateTemplate(plan)}
               />
             ))}
           </section>
@@ -367,11 +466,19 @@ export default function TrainingPlansPage() {
 function PlanCard({
   plan,
   isDeleting,
+  isDuplicating,
+  isTemplating,
   onDelete,
+  onDuplicate,
+  onCreateTemplate,
 }: {
   plan: TrainingPlanListRow;
   isDeleting: boolean;
+  isDuplicating: boolean;
+  isTemplating: boolean;
   onDelete: () => void;
+  onDuplicate: () => void;
+  onCreateTemplate: () => void;
 }) {
   const exerciseCount = plan.training_plan_blocks.length;
   const blocksDuration = plan.training_plan_blocks.reduce(
@@ -427,20 +534,36 @@ function PlanCard({
         <CardMetric label="Тривалість" value={`${totalDuration} хв`} />
       </div>
 
-      <div className="mt-auto grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-t border-slate-100 pt-5">
+      <div className="mt-auto grid grid-cols-2 gap-2 border-t border-slate-100 pt-5">
         <Link
           href={`/admin/coach/training-plans/${plan.id}`}
-          className="inline-flex min-h-11 items-center justify-center rounded-full bg-slate-950 px-5 font-black text-white transition hover:bg-sky-600"
+          className="col-span-2 inline-flex min-h-11 items-center justify-center rounded-full bg-slate-950 px-5 font-black text-white transition hover:bg-sky-600"
         >
           Відкрити
         </Link>
         <button
           type="button"
-          disabled={isDeleting}
-          onClick={onDelete}
-          className="inline-flex min-h-11 items-center justify-center rounded-full border border-rose-200 px-4 text-sm font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+          disabled={isDeleting || isDuplicating || isTemplating}
+          onClick={onDuplicate}
+          className="inline-flex min-h-11 items-center justify-center rounded-full border border-sky-200 px-4 text-sm font-black text-sky-700 transition hover:bg-sky-50 disabled:opacity-50"
         >
-          {isDeleting ? "..." : "Видалити"}
+          {isDuplicating ? "Копіювання..." : "Дублювати"}
+        </button>
+        <button
+          type="button"
+          disabled={isDeleting || isDuplicating || isTemplating}
+          onClick={onCreateTemplate}
+          className="inline-flex min-h-11 items-center justify-center rounded-full border border-emerald-200 px-4 text-sm font-black text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50"
+        >
+          {isTemplating ? "Створення..." : "У шаблон"}
+        </button>
+        <button
+          type="button"
+          disabled={isDeleting || isDuplicating || isTemplating}
+          onClick={onDelete}
+          className="col-span-2 inline-flex min-h-11 items-center justify-center rounded-full border border-rose-200 px-4 text-sm font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+        >
+          {isDeleting ? "Видалення..." : "Видалити"}
         </button>
       </div>
     </article>

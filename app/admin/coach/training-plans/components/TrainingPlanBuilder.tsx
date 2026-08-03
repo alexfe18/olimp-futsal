@@ -20,6 +20,7 @@ import {
   createManualBlock,
   loadExerciseLibrary,
   saveTrainingPlanDraft,
+  saveTrainingTemplateDraft,
 } from "./training-plan-service";
 import type {
   ExerciseSummary,
@@ -27,12 +28,17 @@ import type {
   TrainingPlanDraft,
   TrainingPlanIntensity,
   TrainingPlanStatus,
+  TrainingTemplateStatus,
 } from "./types";
 import { useTrainingPlanUnsavedChanges } from "./useTrainingPlanUnsavedChanges";
 
 type Props = {
   mode: "create" | "edit";
+  entity?: "plan" | "template";
   initialDraft: TrainingPlanDraft;
+  initialTemplateStatus?: TrainingTemplateStatus;
+  sourcePlanId?: string | null;
+  sourceLabel?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 };
@@ -42,8 +48,12 @@ type Message = {
   text: string;
 } | null;
 
-function serializeDraft(draft: TrainingPlanDraft) {
+function serializeDraft(
+  draft: TrainingPlanDraft,
+  templateStatus?: TrainingTemplateStatus,
+) {
   return JSON.stringify({
+    templateStatus: templateStatus ?? null,
     title: draft.title,
     sessionDate: draft.sessionDate,
     teamName: draft.teamName,
@@ -167,29 +177,51 @@ function friendlySaveError(error: unknown) {
   const normalized = text.toLocaleLowerCase("en-US");
 
   if (
+    normalized.includes("save_training_template_draft") ||
+    normalized.includes("training_templates") ||
+    normalized.includes("training_template_blocks")
+  ) {
+    return "Не вдалося зберегти шаблон. Виконайте SQL-міграцію Sprint 05.1, а потім повторіть спробу.";
+  }
+
+  if (
     normalized.includes("save_training_plan_draft") ||
     normalized.includes("session_date") ||
     normalized.includes("exercise_id") ||
     normalized.includes("planned_duration_check")
   ) {
-    return "Не вдалося зберегти чернетку. Виконайте актуальну SQL-міграцію Training Builder, а потім повторіть спробу.";
+    return "Не вдалося зберегти план. Виконайте актуальну SQL-міграцію Training Builder, а потім повторіть спробу.";
   }
 
-  return `Не вдалося зберегти чернетку. ${text}`;
+  return `Не вдалося зберегти дані. ${text}`;
 }
 
 export default function TrainingPlanBuilder({
   mode,
+  entity = "plan",
   initialDraft,
+  initialTemplateStatus = "active",
+  sourcePlanId = null,
+  sourceLabel = null,
   createdAt = null,
   updatedAt = null,
 }: Props) {
+  const isTemplate = entity === "template";
+  const backHref = isTemplate
+    ? "/admin/coach/training-templates"
+    : "/admin/coach/training-plans";
   const [draft, setDraft] = useState<TrainingPlanDraft>(initialDraft);
-  const [baseline, setBaseline] = useState(() => serializeDraft(initialDraft));
+  const [templateStatus, setTemplateStatus] =
+    useState<TrainingTemplateStatus>(initialTemplateStatus);
+  const [baseline, setBaseline] = useState(() =>
+    serializeDraft(initialDraft, initialTemplateStatus),
+  );
   const [exercises, setExercises] = useState<ExerciseSummary[]>([]);
   const [isLoadingExercises, setIsLoadingExercises] = useState(true);
   const [exerciseError, setExerciseError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingAsTemplate, setIsSavingAsTemplate] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [message, setMessage] = useState<Message>(null);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(
@@ -199,11 +231,13 @@ export default function TrainingPlanBuilder({
     Pick<ExerciseSummary, "id" | "title" | "code" | "category"> | null
   >(null);
 
-  const hasUnsavedChanges = serializeDraft(draft) !== baseline;
+  const hasUnsavedChanges =
+    serializeDraft(draft, templateStatus) !== baseline;
   const { navigateAfterSave, navigateSafely } =
     useTrainingPlanUnsavedChanges({
       hasUnsavedChanges,
-      isSaving: isSaving || isDeleting,
+      isSaving:
+        isSaving || isSavingAsTemplate || isDuplicating || isDeleting,
     });
 
   const loadExercises = useCallback(async () => {
@@ -344,7 +378,9 @@ export default function TrainingPlanBuilder({
 
   function validateDraft() {
     if (!draft.title.trim()) {
-      return "Вкажіть назву тренування.";
+      return isTemplate
+        ? "Вкажіть назву шаблону."
+        : "Вкажіть назву тренування.";
     }
 
     if (draft.blocks.length === 0) {
@@ -389,29 +425,44 @@ export default function TrainingPlanBuilder({
       const normalizedBlocks = normalizeBlocks(
         hydrateExerciseLinks(draft.blocks, exercises),
       );
-      const planId = await saveTrainingPlanDraft({
-        ...draft,
-        blocks: normalizedBlocks,
-      });
+      const savedId = isTemplate
+        ? await saveTrainingTemplateDraft(
+            {
+              ...draft,
+              blocks: normalizedBlocks,
+            },
+            templateStatus,
+            sourcePlanId,
+          )
+        : await saveTrainingPlanDraft({
+            ...draft,
+            blocks: normalizedBlocks,
+          });
 
       const savedDraft = {
         ...draft,
-        id: planId,
+        id: savedId,
         blocks: normalizedBlocks,
       };
 
       setDraft(savedDraft);
-      setBaseline(serializeDraft(savedDraft));
+      setBaseline(serializeDraft(savedDraft, templateStatus));
       setLastSavedAt(new Date().toISOString());
 
       if (mode === "create") {
-        navigateAfterSave(`/admin/coach/training-plans/${planId}`);
+        navigateAfterSave(
+          isTemplate
+            ? `/admin/coach/training-templates/${savedId}`
+            : `/admin/coach/training-plans/${savedId}`,
+        );
         return;
       }
 
       setMessage({
         type: "success",
-        text: "Чернетку тренування збережено.",
+        text: isTemplate
+          ? "Шаблон тренування збережено."
+          : "Чернетку тренування збережено.",
       });
     } catch (error) {
       setMessage({ type: "error", text: friendlySaveError(error) });
@@ -426,7 +477,9 @@ export default function TrainingPlanBuilder({
 
     if (
       !window.confirm(
-        `Видалити план «${draft.title || "Без назви"}» разом з усіма блоками?`,
+        isTemplate
+          ? `Видалити шаблон «${draft.title || "Без назви"}» разом з усіма блоками?`
+          : `Видалити план «${draft.title || "Без назви"}» разом з усіма блоками?`,
       )
     ) {
       return;
@@ -436,21 +489,141 @@ export default function TrainingPlanBuilder({
     setMessage(null);
 
     const { error } = await supabase
-      .from("training_plans")
+      .from(isTemplate ? "training_templates" : "training_plans")
       .delete()
       .eq("id", draft.id);
 
     if (error) {
       setMessage({
         type: "error",
-        text: `Не вдалося видалити план. ${error.message}`,
+        text: isTemplate
+          ? `Не вдалося видалити шаблон. ${error.message}`
+          : `Не вдалося видалити план. ${error.message}`,
       });
       setIsDeleting(false);
       return;
     }
 
-    setBaseline(serializeDraft(draft));
-    navigateAfterSave("/admin/coach/training-plans");
+    setBaseline(serializeDraft(draft, templateStatus));
+    navigateAfterSave(backHref);
+  }
+
+  async function handleSaveAsTemplate() {
+    const validationError = validateDraft();
+
+    if (validationError) {
+      setMessage({ type: "error", text: validationError });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    const requestedTitle = window.prompt(
+      "Назва нового шаблону",
+      `Шаблон — ${draft.title}`,
+    );
+
+    if (requestedTitle === null) return;
+
+    if (!requestedTitle.trim()) {
+      setMessage({ type: "error", text: "Вкажіть назву шаблону." });
+      return;
+    }
+
+    setIsSavingAsTemplate(true);
+    setMessage(null);
+
+    try {
+      const normalizedBlocks = normalizeBlocks(
+        hydrateExerciseLinks(draft.blocks, exercises),
+      );
+      const templateId = await saveTrainingTemplateDraft(
+        {
+          ...draft,
+          id: null,
+          title: requestedTitle.trim(),
+          sessionDate: "",
+          status: "draft",
+          blocks: normalizedBlocks.map((block, index) => ({
+            ...block,
+            clientId: crypto.randomUUID(),
+            persistedId: null,
+            sortOrder: index,
+          })),
+        },
+        "active",
+        draft.id,
+      );
+
+      if (
+        window.confirm(
+          "Шаблон створено. Відкрити його для перевірки та редагування?",
+        )
+      ) {
+        navigateAfterSave(`/admin/coach/training-templates/${templateId}`);
+        return;
+      }
+
+      setMessage({
+        type: "success",
+        text: `Шаблон «${requestedTitle.trim()}» створено.`,
+      });
+    } catch (error) {
+      setMessage({ type: "error", text: friendlySaveError(error) });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setIsSavingAsTemplate(false);
+    }
+  }
+
+  async function handleDuplicateCurrentPlan() {
+    const validationError = validateDraft();
+
+    if (validationError) {
+      setMessage({ type: "error", text: validationError });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    const requestedTitle = window.prompt(
+      "Назва копії плану",
+      `Копія — ${draft.title}`,
+    );
+
+    if (requestedTitle === null) return;
+
+    if (!requestedTitle.trim()) {
+      setMessage({ type: "error", text: "Вкажіть назву копії плану." });
+      return;
+    }
+
+    setIsDuplicating(true);
+    setMessage(null);
+
+    try {
+      const normalizedBlocks = normalizeBlocks(
+        hydrateExerciseLinks(draft.blocks, exercises),
+      );
+      const planId = await saveTrainingPlanDraft({
+        ...draft,
+        id: null,
+        title: requestedTitle.trim(),
+        sessionDate: "",
+        status: "draft",
+        blocks: normalizedBlocks.map((block, index) => ({
+          ...block,
+          clientId: crypto.randomUUID(),
+          persistedId: null,
+          sortOrder: index,
+        })),
+      });
+
+      navigateAfterSave(`/admin/coach/training-plans/${planId}`);
+    } catch (error) {
+      setMessage({ type: "error", text: friendlySaveError(error) });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setIsDuplicating(false);
+    }
   }
 
   return (
@@ -459,11 +632,11 @@ export default function TrainingPlanBuilder({
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <button
             type="button"
-            onClick={() => navigateSafely("/admin/coach/training-plans")}
+            onClick={() => navigateSafely(backHref)}
             className="inline-flex items-center gap-2 font-black text-sky-700 transition hover:text-sky-500"
           >
             <span aria-hidden="true">←</span>
-            До планів тренувань
+            {isTemplate ? "До шаблонів тренувань" : "До планів тренувань"}
           </button>
 
           <span
@@ -481,19 +654,32 @@ export default function TrainingPlanBuilder({
           <div className="flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.28em] text-sky-400">
-                {mode === "create"
-                  ? "Створення плану тренування"
-                  : "Редагування плану тренування"}
+                {isTemplate
+                  ? mode === "create"
+                    ? "Створення шаблону тренування"
+                    : "Редагування шаблону тренування"
+                  : mode === "create"
+                    ? "Створення плану тренування"
+                    : "Редагування плану тренування"}
               </p>
               <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">
                 {mode === "create"
-                  ? "Нова тренувальна сесія"
-                  : draft.title || "План тренування"}
+                  ? isTemplate
+                    ? "Новий шаблон тренування"
+                    : "Нова тренувальна сесія"
+                  : draft.title ||
+                    (isTemplate ? "Шаблон тренування" : "План тренування")}
               </h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">
-                Складіть план вручну або додайте вправи з бібліотеки,
-                налаштуйте тривалість і збережіть послідовність блоків.
+                {isTemplate
+                  ? "Зберіть повторно використовувану структуру, яку можна копіювати в нові тренувальні сесії без зміни оригіналу."
+                  : "Складіть план вручну або додайте вправи з бібліотеки, налаштуйте тривалість і збережіть послідовність блоків."}
               </p>
+              {sourceLabel ? (
+                <p className="mt-3 inline-flex rounded-full bg-sky-400/10 px-4 py-2 text-sm font-black text-sky-300">
+                  {sourceLabel}
+                </p>
+              ) : null}
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(3,minmax(8.5rem,1fr))]">
@@ -538,31 +724,59 @@ export default function TrainingPlanBuilder({
               <SectionHeading
                 eyebrow="01 · Метадані"
                 title="Основна інформація"
-                description="Дані чернетки можна доповнювати поступово. Для збереження потрібні назва та хоча б одна вправа або власний блок."
+                description={
+                  isTemplate
+                    ? "Шаблон зберігає структуру, вправи, тривалість і нотатки. Дата додається вже під час створення окремого плану."
+                    : "Дані чернетки можна доповнювати поступово. Для збереження потрібні назва та хоча б одна вправа або власний блок."
+                }
               />
 
               <div className="mt-6 grid gap-5 lg:grid-cols-2">
-                <Field label="Назва тренування *">
+                <Field
+                  label={isTemplate ? "Назва шаблону *" : "Назва тренування *"}
+                >
                   <input
                     value={draft.title}
                     onChange={(event) =>
                       updateMetadata("title", event.target.value)
                     }
-                    placeholder="Наприклад: Вихід із пресингу та завершення"
-                    className="input-control"
-                  />
-                </Field>
-
-                <Field label="Дата">
-                  <input
-                    type="date"
-                    value={draft.sessionDate}
-                    onChange={(event) =>
-                      updateMetadata("sessionDate", event.target.value)
+                    placeholder={
+                      isTemplate
+                        ? "Наприклад: Базова сесія — вихід із пресингу"
+                        : "Наприклад: Вихід із пресингу та завершення"
                     }
                     className="input-control"
                   />
                 </Field>
+
+                {!isTemplate ? (
+                  <Field label="Дата">
+                    <input
+                      type="date"
+                      value={draft.sessionDate}
+                      onChange={(event) =>
+                        updateMetadata("sessionDate", event.target.value)
+                      }
+                      className="input-control"
+                    />
+                  </Field>
+                ) : (
+                  <Field label="Статус шаблону">
+                    <select
+                      value={templateStatus}
+                      onChange={(event) => {
+                        setTemplateStatus(
+                          event.target.value as TrainingTemplateStatus,
+                        );
+                        setMessage(null);
+                      }}
+                      className="input-control"
+                    >
+                      <option value="active">Активний</option>
+                      <option value="archived">В архіві</option>
+                    </select>
+                  </Field>
+                )}
 
                 <Field label="Команда">
                   <input
@@ -611,7 +825,7 @@ export default function TrainingPlanBuilder({
                   </select>
                 </Field>
 
-                {mode === "edit" ? (
+                {!isTemplate && mode === "edit" ? (
                   <Field label="Статус">
                     <select
                       value={draft.status}
@@ -949,7 +1163,7 @@ export default function TrainingPlanBuilder({
 
             <section className="rounded-[2rem] bg-slate-950 p-5 text-white shadow-xl sm:p-6">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-400">
-                Чернетка
+                {isTemplate ? "Шаблон" : "Чернетка"}
               </p>
               <h2 className="mt-3 text-2xl font-black">
                 {totalDuration} хв · {draft.blocks.length} блоків
@@ -958,7 +1172,14 @@ export default function TrainingPlanBuilder({
               <div className="mt-5 space-y-3 text-sm">
                 <SideMetric label="Команда" value={draft.teamName || "—"} />
                 <SideMetric label="Вік" value={draft.ageGroup || "—"} />
-                <SideMetric label="Дата" value={draft.sessionDate || "—"} />
+                {isTemplate ? (
+                  <SideMetric
+                    label="Статус"
+                    value={templateStatus === "active" ? "Активний" : "В архіві"}
+                  />
+                ) : (
+                  <SideMetric label="Дата" value={draft.sessionDate || "—"} />
+                )}
                 {mode === "edit" ? (
                   <>
                     <SideMetric label="Створено" value={formatDateTime(createdAt)} />
@@ -969,23 +1190,88 @@ export default function TrainingPlanBuilder({
 
               <button
                 type="button"
-                disabled={isSaving || isDeleting}
+                disabled={
+                  isSaving ||
+                  isSavingAsTemplate ||
+                  isDuplicating ||
+                  isDeleting
+                }
                 onClick={() => void handleSave()}
                 className="mt-6 inline-flex min-h-13 w-full items-center justify-center rounded-full bg-sky-400 px-6 font-black text-slate-950 transition hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSaving
                   ? "Збереження..."
-                  : mode === "create"
-                    ? "Зберегти чернетку"
-                    : "Зберегти зміни"}
+                  : isTemplate
+                    ? mode === "create"
+                      ? "Зберегти шаблон"
+                      : "Зберегти зміни"
+                    : mode === "create"
+                      ? "Зберегти чернетку"
+                      : "Зберегти зміни"}
               </button>
+
+              {!isTemplate && mode === "edit" ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={
+                      isSaving ||
+                      isSavingAsTemplate ||
+                      isDuplicating ||
+                      isDeleting
+                    }
+                    onClick={() => void handleDuplicateCurrentPlan()}
+                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-sky-400/40 px-5 text-sm font-black text-sky-300 transition hover:bg-sky-400/10 disabled:opacity-50"
+                  >
+                    {isDuplicating ? "Створення копії..." : "Дублювати план"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      isSaving ||
+                      isSavingAsTemplate ||
+                      isDuplicating ||
+                      isDeleting
+                    }
+                    onClick={() => void handleSaveAsTemplate()}
+                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-emerald-400/40 px-5 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/10 disabled:opacity-50"
+                  >
+                    {isSavingAsTemplate
+                      ? "Створення шаблону..."
+                      : "Зберегти як шаблон"}
+                  </button>
+                </>
+              ) : null}
+
+              {isTemplate && mode === "edit" && draft.id ? (
+                <button
+                  type="button"
+                  disabled={
+                    isSaving ||
+                    isSavingAsTemplate ||
+                    isDuplicating ||
+                    isDeleting
+                  }
+                  onClick={() =>
+                    navigateSafely(
+                      `/admin/coach/training-plans/new?template=${draft.id}`,
+                    )
+                  }
+                  className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-emerald-400/40 px-5 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/10 disabled:opacity-50"
+                >
+                  Створити план із шаблону
+                </button>
+              ) : null}
 
               <button
                 type="button"
-                disabled={isSaving || isDeleting}
-                onClick={() =>
-                  navigateSafely("/admin/coach/training-plans")
+                disabled={
+                  isSaving ||
+                  isSavingAsTemplate ||
+                  isDuplicating ||
+                  isDeleting
                 }
+                onClick={() => navigateSafely(backHref)}
                 className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-white/15 px-5 text-sm font-black text-white transition hover:border-sky-400 hover:text-sky-300 disabled:opacity-50"
               >
                 Скасувати
@@ -994,11 +1280,20 @@ export default function TrainingPlanBuilder({
               {mode === "edit" ? (
                 <button
                   type="button"
-                  disabled={isSaving || isDeleting}
+                  disabled={
+                    isSaving ||
+                    isSavingAsTemplate ||
+                    isDuplicating ||
+                    isDeleting
+                  }
                   onClick={() => void handleDelete()}
                   className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-rose-400/40 px-5 text-sm font-black text-rose-300 transition hover:bg-rose-400/10 disabled:opacity-50"
                 >
-                  {isDeleting ? "Видалення..." : "Видалити план"}
+                  {isDeleting
+                    ? "Видалення..."
+                    : isTemplate
+                      ? "Видалити шаблон"
+                      : "Видалити план"}
                 </button>
               ) : null}
             </section>

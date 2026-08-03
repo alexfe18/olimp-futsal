@@ -23,6 +23,14 @@ const workspaceModules = [
     action: "Відкрити плани",
   },
   {
+    href: "/admin/coach/training-templates",
+    icon: "📚",
+    title: "Шаблони тренувань",
+    description:
+      "Зберігайте повторювані структури сесій та створюйте з них незалежні плани.",
+    action: "Відкрити шаблони",
+  },
+  {
     href: "/admin/coach/exercises",
     icon: "🏃",
     title: "Бібліотека вправ",
@@ -103,7 +111,7 @@ export default function CoachWorkspacePage() {
           </p>
         </div>
 
-        <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {workspaceModules.map((module) => (
             <article
               key={module.href}
@@ -147,8 +155,8 @@ export default function CoachWorkspacePage() {
           </h2>
 
           <p className="mt-3 max-w-2xl leading-7 text-slate-700">
-            Бібліотеку вправ підключено до конструктора тренувань. Створюйте чернетки,
-            додавайте вправи, змінюйте порядок блоків і контролюйте загальну тривалість.
+            Бібліотеку вправ підключено до конструктора тренувань. Плани можна
+            дублювати, зберігати як шаблони та створювати з них незалежні сесії.
           </p>
 
           <Link
@@ -169,8 +177,8 @@ export default function CoachWorkspacePage() {
           </h2>
 
           <p className="mt-3 leading-7 text-slate-600">
-            Після Foundation додамо шаблони сесій, публікацію плану, review проведеного
-            тренування та роботу з мікроциклами.
+            Після шаблонів переходимо до публікації плану, review проведеного
+            тренування та роботи з мікроциклами.
           </p>
         </article>
       </section>

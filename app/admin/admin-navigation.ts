@@ -29,6 +29,11 @@ export const adminNavigationSections: AdminNavigationSection[] = [
         icon: "🗂️",
       },
       {
+        href: "/admin/coach/training-templates",
+        label: "Шаблони тренувань",
+        icon: "📚",
+      },
+      {
         href: "/admin/coach/exercises",
         label: "Бібліотека вправ",
         icon: "🏃",
