@@ -1,0 +1,18 @@
+{
+  "pack_id": "attacking-combinations-v1",
+  "title": "Attacking Combinations Content Pack v1",
+  "version": "1.0",
+  "language": "uk",
+  "exercise_count": 10,
+  "code_range": "ATK-001–ATK-010",
+  "category": "attacking",
+  "status": "active",
+  "library_tier": "core",
+  "source": "Futsal Exercise Library — Attacking Combinations Content Pack v1.0",
+  "visual_assets": "deferred until functional roadmap is completed",
+  "files": {
+    "json": "Futsal-Exercise-Library-Attacking-Combinations-v1.json",
+    "csv": "Futsal-Exercise-Library-Attacking-Combinations-v1.csv",
+    "catalog": "Attacking-Combinations-Content-Pack-v1-Catalog.md"
+  }
+}

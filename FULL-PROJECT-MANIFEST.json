@@ -1,0 +1,1875 @@
+{
+  "release": "Sprint 05.0.5",
+  "files": [
+    {
+      "path": ".env.example",
+      "sha256": "2e27be92fc016ff894b381ae000a3df5e382cdef2e610a7a095920a5d0dab1b7",
+      "bytes": 198
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "5a325b3b95272af63c207a3a80285fbe21004be4505ff4eecd7af236bb4e6936",
+      "bytes": 535
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "e3447d84251880fb34cfae09131cb4c57471529bbfe60976a3245793cf621627",
+      "bytes": 327
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49",
+      "bytes": 11
+    },
+    {
+      "path": "CONTENT-ROADMAP-PACKS-OF-10.md",
+      "sha256": "39578483e3663d789eb75a3a0bbf40e3cf6a1b40ed8cbf0ec4035f8b413ec3d3",
+      "bytes": 584
+    },
+    {
+      "path": "DEFERRED-MEDIA-BACKLOG.md",
+      "sha256": "1b53e5f3f9c22cc862d0c7312bf96fd4e9e4e49f7ebb6748d99a2ad686137d16",
+      "bytes": 519
+    },
+    {
+      "path": "README-INSTALL.txt",
+      "sha256": "ddcc607dcaf8fd6c4790f204b1ec4cfa6a77b2cf4ef42146db3ae9cd79151203",
+      "bytes": 429
+    },
+    {
+      "path": "README-MERGE.txt",
+      "sha256": "7fbc5fd1d82c48b29f4a1867803f9f74e34556f48dadc5bafd9174700524dec6",
+      "bytes": 399
+    },
+    {
+      "path": "README.md",
+      "sha256": "addaf5fefcda3cf5d9a1872762daf3399d1e5aa27e936cc3370d7b8c79630b0c",
+      "bytes": 266
+    },
+    {
+      "path": "Technical-Visual-Pack-v1-Brief.md",
+      "sha256": "b33441a7fc7e25918fe7874fc1323ff58e66f07ec01ef046592acb5f92ecc359",
+      "bytes": 3974
+    },
+    {
+      "path": "app/admin/AdminMobileHeader.tsx",
+      "sha256": "a62593b2b31d2bfbe3c8cce30bc0a264b8afebcd12effb3ea108fc462eed6361",
+      "bytes": 4281
+    },
+    {
+      "path": "app/admin/AdminNavigationList.tsx",
+      "sha256": "6de42655668458855661538afd04ed45c9d2cea389f4eb409e48a7ca451b295a",
+      "bytes": 2992
+    },
+    {
+      "path": "app/admin/AdminShell.tsx",
+      "sha256": "f638c74d14e8bb28fb3b92590a3a84bbb365813338c03445d725642873d9368e",
+      "bytes": 3680
+    },
+    {
+      "path": "app/admin/AdminSidebar.tsx",
+      "sha256": "fae4ab7985716ae9e9f331cb444e4808a6b3976997497ccb3e38da37126fa622",
+      "bytes": 2308
+    },
+    {
+      "path": "app/admin/admin-navigation.ts",
+      "sha256": "126a492efe2891a69361452dbd02b42b67ec2ba75dd786f984a0db8d3a93676c",
+      "bytes": 2828
+    },
+    {
+      "path": "app/admin/attendance/[trainingId]/page.tsx",
+      "sha256": "f2b1207959abf55a76c144b0d33abcfe156a992943fd6702233852b31da2d0aa",
+      "bytes": 22043
+    },
+    {
+      "path": "app/admin/attendance/page.tsx",
+      "sha256": "c6d379b0d3b4cb606c3cac3e64835306ef7708269da7f123e970e5c7ced389db",
+      "bytes": 28071
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/components/ExerciseActions.tsx",
+      "sha256": "671515136aa2f5ed74361a0a4ee2029d04f6eca2db795941d58a3118c48354a8",
+      "bytes": 1758
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/components/ExerciseDiagram.tsx",
+      "sha256": "9c0dfa4cbf6888592bed88d0fe287dc01d9bf357958a92db522d295c3a766db1",
+      "bytes": 928
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/components/ExerciseHero.tsx",
+      "sha256": "9f015c024c0371f55fe816d61b33d14a1ac3412348e3b82e5f89957440f2c6a2",
+      "bytes": 5434
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/components/ExerciseMetrics.tsx",
+      "sha256": "635b4f2ea957cf5bdb1c9fa44a30f0c1c2313dd8182f8bf4725abddc63193733",
+      "bytes": 1171
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/components/ExerciseSidebar.tsx",
+      "sha256": "335faed92e67624785ed37e5120a41fe137a834e86e0e7df8777be8d119c07b4",
+      "bytes": 5740
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/components/ExerciseVideo.tsx",
+      "sha256": "dfb24aed2457e8dbcf745ca6038075515b01eb3cf15d01201711cf8ba85ac019",
+      "bytes": 1259
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/components/form/ExerciseForm.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/components/form/ExerciseFormActions.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/components/form/ExerciseFormHero.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/components/form/types.ts",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/components/shared/ExerciseContentSection.tsx",
+      "sha256": "d53cd2023eaf93d3336059bcf4ee9b39393c1d0ffce7176e561db7a5dc3dba69",
+      "bytes": 629
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/components/shared/ExerciseTextSection.tsx",
+      "sha256": "fee77f392119b127d6bd23eb1d82feeaa7c0b2f82dee67e3a82876d3be8b396a",
+      "bytes": 473
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/edit/page.tsx",
+      "sha256": "a615671027c0bd5e66c84c121dad8859df6e3f1af9877084b7d5503e985b3f18",
+      "bytes": 4751
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/page.tsx",
+      "sha256": "0ca75266f8aba3369d6002afc330358909f9df6407d732f5fce39754d74bb7b8",
+      "bytes": 13463
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/types.ts",
+      "sha256": "42d173c417fa9659c97c608eb98d3db990c7f2a8fb23d36a58ef3044beaa6237",
+      "bytes": 1253
+    },
+    {
+      "path": "app/admin/coach/exercises/[id]/utils.ts",
+      "sha256": "d28ec3c14a5cb0d1f41d7d4f54aacfa7ea45350ee9dafc370f54a1aa56e5c43b",
+      "bytes": 4203
+    },
+    {
+      "path": "app/admin/coach/exercises/components/CategoryChips.tsx",
+      "sha256": "b7dabb2ab9a9b078d8c4be1381042e9b4a2a845ca94b8173f7734f9d975da594",
+      "bytes": 1087
+    },
+    {
+      "path": "app/admin/coach/exercises/components/EmptyLibraryState.tsx",
+      "sha256": "e55bf923d59227e42a07d638ac86307aa5cd79eaa49e4b2283ece7389df4da1c",
+      "bytes": 1588
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ExerciseCard.tsx",
+      "sha256": "edd8359b513a5d7251df26b2d96225e7eeac290b23ae44ae833a14b8cc80bb13",
+      "bytes": 10034
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ExerciseFilters.tsx",
+      "sha256": "95eb48da74f383aae6db3d5d9858ce67f49e5bd55bf5a9b582818211561f13b9",
+      "bytes": 3781
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ExerciseStats.tsx",
+      "sha256": "c424f7a58e64db50f76365216346d85faf002a314b0e8e8a99a8a212b5534b8f",
+      "bytes": 1793
+    },
+    {
+      "path": "app/admin/coach/exercises/components/PageHero.tsx",
+      "sha256": "1fb7d7bab7df567ded2817b6ceabe09bd3c16e2002981c1ab77eb85e5dfda8bb",
+      "bytes": 1340
+    },
+    {
+      "path": "app/admin/coach/exercises/components/form/ExerciseForm.tsx",
+      "sha256": "e915d600b2242f2012853fd6d95eeb56e05208308588504daac50697cbdaff9c",
+      "bytes": 28697
+    },
+    {
+      "path": "app/admin/coach/exercises/components/form/ExerciseFormActions.tsx",
+      "sha256": "226c09009f9608264baa8d03624f9b90083ae923659bd27cb137ae9591d49257",
+      "bytes": 1860
+    },
+    {
+      "path": "app/admin/coach/exercises/components/form/ExerciseFormHero.tsx",
+      "sha256": "4baebb8b1e2ba37af64a06b1c354538d0ffcc4a2462b466cc8ab547af5670998",
+      "bytes": 2270
+    },
+    {
+      "path": "app/admin/coach/exercises/components/form/config/exercise-options.ts",
+      "sha256": "2933e945f52f05ff39dbacb483eb9f13a8ad409fa95c5b3d5cfe5bfe1618d07a",
+      "bytes": 3735
+    },
+    {
+      "path": "app/admin/coach/exercises/components/form/data/exercise-loader.ts",
+      "sha256": "d18d7b3bf2adbc201847dc204231fcc1a154b9998bc0af407c84977e6ac841cc",
+      "bytes": 5099
+    },
+    {
+      "path": "app/admin/coach/exercises/components/form/data/exercise-mapper.ts",
+      "sha256": "5eb9cc27f089141722c0c1606c00b86c185dda079fb1ba2f5fd564ca181a6064",
+      "bytes": 3198
+    },
+    {
+      "path": "app/admin/coach/exercises/components/form/data/index.ts",
+      "sha256": "31606069968dc04d97f1fda31902038b2d2203a1e33348a27f5904a4849113a7",
+      "bytes": 382
+    },
+    {
+      "path": "app/admin/coach/exercises/components/form/hooks/useExerciseForm.ts",
+      "sha256": "f9192476813e7eea24c6287f9d2084094508d111d6756db5fbf6029ed754e6b9",
+      "bytes": 20187
+    },
+    {
+      "path": "app/admin/coach/exercises/components/form/hooks/useUnsavedChangesProtection.ts",
+      "sha256": "3b7b90cfaf2fc3a4ecebd9ead6e431dcf712602554f2e42e4454af927f43294d",
+      "bytes": 4977
+    },
+    {
+      "path": "app/admin/coach/exercises/components/form/sections/ExerciseFormSidebar.tsx",
+      "sha256": "6453a595227775fa67b4cd1660011a94f818c9983424f4fe6e381b08f6f52c84",
+      "bytes": 8135
+    },
+    {
+      "path": "app/admin/coach/exercises/components/form/types/exercise-form.ts",
+      "sha256": "4520987fce685bad59d3396926acad8c5700aa15bb99561369b83f897ce0ee96",
+      "bytes": 1184
+    },
+    {
+      "path": "app/admin/coach/exercises/components/types.ts",
+      "sha256": "1026f076a157df0c1470ab45d4393ba2ad230e5c84e2c706b4c0bce1bf01b961",
+      "bytes": 6370
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/ActionBar.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/Badge.tsx",
+      "sha256": "230ebb69388f94213df4545ca4a1ee14589ac5dfef4bb8f6d289513368603c6e",
+      "bytes": 1011
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/Chip.tsx",
+      "sha256": "5e07b18ef1aab88d60508d28e4a9e5eec2b24ee2314622219ae343db2df31457",
+      "bytes": 1658
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/ContentCard.tsx",
+      "sha256": "2f489b66e418161fe9161bcb357c2ca546747fec41f3b99c880ec973bd388630",
+      "bytes": 2230
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/EmptyPlaceholder.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/EmptyState.tsx",
+      "sha256": "f8bad568788057ce4b88818b4c76af4b5119e98a043e3a2cf66f47e6af9e82fc",
+      "bytes": 1079
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/HeroCard.tsx",
+      "sha256": "fde5262fb3f69943117a9726c579d4d9a17322c16c096b68cba7283926af4ae8",
+      "bytes": 2490
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/InfoGroup.tsx",
+      "sha256": "29cb7391b484b92f5ab90e6cf35dea87c041b07bc664f61a5b34acf33a5114a4",
+      "bytes": 692
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/InfoPanel.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/InfoRow.tsx",
+      "sha256": "8600ba79ad572b462f79c9db7cceaaa8ba09870d0348a649627e38fab645c111",
+      "bytes": 1251
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/Metric.tsx",
+      "sha256": "dca1c71da7d210beab77a7aa0ac86d09151fc17e9df200b7e13befd175159fe2",
+      "bytes": 836
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/PropertyCard.tsx",
+      "sha256": "414576525272b3bfab156fb326972e1eda294b32e75bcb65e45e6ca8ec1fc4c0",
+      "bytes": 1184
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/PropertyGrid.tsx",
+      "sha256": "46ee981cc14b7660ba7e2c42a475f35ed2df4d10117731b0cd02454cd2219be3",
+      "bytes": 1283
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/SectionHeader.tsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/StatCard.tsx",
+      "sha256": "0778cd4ef701c61721095615f274e6a1b589515b629bfdbe6f7f9670c15c779c",
+      "bytes": 1200
+    },
+    {
+      "path": "app/admin/coach/exercises/components/ui/TagCloud.tsx",
+      "sha256": "8015ec04cbf89f3809808838c981d8555ffe814ac78bb738659f9f33afaa584e",
+      "bytes": 1139
+    },
+    {
+      "path": "app/admin/coach/exercises/components/workspace/hero/ExerciseWorkspaceHero.tsx",
+      "sha256": "df1f1ebd322f84f9dfa61dece8ee21087525c5f19f47ea8fc47f8f6500ef2be2",
+      "bytes": 791
+    },
+    {
+      "path": "app/admin/coach/exercises/components/workspace/index.ts",
+      "sha256": "7badebf1e1c86e10c3854091361e6183f9326bf66ca9f147a18b7252b610f222",
+      "bytes": 507
+    },
+    {
+      "path": "app/admin/coach/exercises/components/workspace/layout/ExerciseWorkspaceLayout.tsx",
+      "sha256": "d711985fc63ca7c5064843d1d086352ab2c8a2671f7e05403d6026725ff990f6",
+      "bytes": 431
+    },
+    {
+      "path": "app/admin/coach/exercises/components/workspace/layout/ExerciseWorkspaceShell.tsx",
+      "sha256": "d2d0c000db7f1b00f3b348f832ec7dd31d7ae08db5ff26670d482f08118f1df6",
+      "bytes": 424
+    },
+    {
+      "path": "app/admin/coach/exercises/components/workspace/layout/ExerciseWorkspaceSidebar.tsx",
+      "sha256": "3619e61552b7b8ea072fc01bb3fbe77bcba19786b4b7fc81fbd19c13c0fff51c",
+      "bytes": 240
+    },
+    {
+      "path": "app/admin/coach/exercises/components/workspace/types/types.ts",
+      "sha256": "59c707528b024c11365f83f262b4c79499dd4dba65113963baa69cf0f1963f91",
+      "bytes": 427
+    },
+    {
+      "path": "app/admin/coach/exercises/create/page.tsx",
+      "sha256": "94c2bae0955b8dc3099be4543b84479424a1622d2c953f30bc40dca8b0458c04",
+      "bytes": 151
+    },
+    {
+      "path": "app/admin/coach/exercises/import/components/ImportFilePanel.tsx",
+      "sha256": "07799ea0263034573e127639d175ad82d23e97e06e98111d33ca17a5d494e28a",
+      "bytes": 3661
+    },
+    {
+      "path": "app/admin/coach/exercises/import/components/ImportPreviewTable.tsx",
+      "sha256": "e17fb32e37ea4870f5f8e5600f3bdda973e19d9157568821c8bebc3a37d2b192",
+      "bytes": 6367
+    },
+    {
+      "path": "app/admin/coach/exercises/import/components/ImportSummary.tsx",
+      "sha256": "2d4e47cce22aa132ef70e7f8e762e922b97091b3219013ecfe1f295eedc772ae",
+      "bytes": 3151
+    },
+    {
+      "path": "app/admin/coach/exercises/import/components/ImportSummaryFilters.tsx",
+      "sha256": "cd8a9d20e229b82cec0ae917721740fc580c0c42d274ef19d04321d0ebd95767",
+      "bytes": 2916
+    },
+    {
+      "path": "app/admin/coach/exercises/import/data/exercise-import-parser.ts",
+      "sha256": "7ebbab42a3cbe7627141d2671a6e9516bb8c19fee2ea24a74a9bda02ce60dcad",
+      "bytes": 4928
+    },
+    {
+      "path": "app/admin/coach/exercises/import/data/exercise-import-service.ts",
+      "sha256": "9603bcbffc8d5eaf5a53859dcee0725db73dfc16653f376fbcd314283d95a4bb",
+      "bytes": 9777
+    },
+    {
+      "path": "app/admin/coach/exercises/import/data/exercise-import-template.ts",
+      "sha256": "6ee7dba8de07b300096cceb9dff874c6c43fa3a7f62f07a7b2f4952373338b8a",
+      "bytes": 5974
+    },
+    {
+      "path": "app/admin/coach/exercises/import/data/exercise-import-validator.ts",
+      "sha256": "d75dafe8cbd4f3389e9a72bb04b061550afb03913784be96456b143695d95cc5",
+      "bytes": 11197
+    },
+    {
+      "path": "app/admin/coach/exercises/import/page.tsx",
+      "sha256": "8a8807a6d01fdd5a428d1f3b23b1f5fdcf6120ad1dc86398ef99dd8f675dfae9",
+      "bytes": 10190
+    },
+    {
+      "path": "app/admin/coach/exercises/import/types.ts",
+      "sha256": "ab8317839233a1854dd5d0db423951e61397a24019dddfe636be6d8306dd5463",
+      "bytes": 2295
+    },
+    {
+      "path": "app/admin/coach/exercises/media-import/components/MediaImportFilePanel.tsx",
+      "sha256": "88b3b42f057459d1c88fd4b24b95265179aaa4ed480af7c989c77db0e9701153",
+      "bytes": 3373
+    },
+    {
+      "path": "app/admin/coach/exercises/media-import/components/MediaImportPreviewTable.tsx",
+      "sha256": "f81b19a46156e37cbda450210cf48ebea97c5a5928392528c87bc3a983a96397",
+      "bytes": 7032
+    },
+    {
+      "path": "app/admin/coach/exercises/media-import/components/MediaImportSummary.tsx",
+      "sha256": "2fbec9fe5b9dc41d24132cf66140b2e877d58ef83d26a0bc2e988f7fc23aa62d",
+      "bytes": 3913
+    },
+    {
+      "path": "app/admin/coach/exercises/media-import/components/MediaImportSummaryFilters.tsx",
+      "sha256": "62bb87fe4e99f645c8fda08bfcec2f525726929103917633e9835bb194b00954",
+      "bytes": 2915
+    },
+    {
+      "path": "app/admin/coach/exercises/media-import/data/media-import-parser.ts",
+      "sha256": "b0df460efafb0b86dc80b922396c39ae4665a023b076a4f13c178d194fb92b41",
+      "bytes": 6946
+    },
+    {
+      "path": "app/admin/coach/exercises/media-import/data/media-import-service.ts",
+      "sha256": "a64d14dd4eb868b9c1ea9fb6c12169a41ac598319bd8d97a2ed60c791679dc58",
+      "bytes": 7107
+    },
+    {
+      "path": "app/admin/coach/exercises/media-import/data/zip-reader.ts",
+      "sha256": "ae0cba76e85cc3c88d5bb7b303e8492877c4b65424d34fb67ff1c1bc1c487e30",
+      "bytes": 6237
+    },
+    {
+      "path": "app/admin/coach/exercises/media-import/page.tsx",
+      "sha256": "af7ec754af3eeb2e418b8b07e69c82f12c409af5f306a807204f387a58d3f0ca",
+      "bytes": 10277
+    },
+    {
+      "path": "app/admin/coach/exercises/media-import/types.ts",
+      "sha256": "49336e077d0bd30688897e9ebbb819aff69b7f408109ed24ddf1db38b2170717",
+      "bytes": 1507
+    },
+    {
+      "path": "app/admin/coach/exercises/new/page.tsx",
+      "sha256": "7ca00244914de34f7e05a3f238446eb888b0bdfb6448002647eaf0ea450f0940",
+      "bytes": 136
+    },
+    {
+      "path": "app/admin/coach/exercises/page.tsx",
+      "sha256": "fff51fa06d120971e2daa608889843edc3fb8e98c3c03e91a6791e5aba7afb4e",
+      "bytes": 11562
+    },
+    {
+      "path": "app/admin/coach/page.tsx",
+      "sha256": "08d5ae3d23cbd5678c7a3708fffbbdba843202b1a1653a02945090260bde903c",
+      "bytes": 7399
+    },
+    {
+      "path": "app/admin/coach/training-plans/[id]/page.tsx",
+      "sha256": "edba610159b2c1801d98cefce283647ccfca1f0438ee7eb3082d9714296c4b25",
+      "bytes": 3990
+    },
+    {
+      "path": "app/admin/coach/training-plans/components/ExerciseLibraryPicker.tsx",
+      "sha256": "55b46557e843eb03e0b2f8b9ae417a9cba0dedc83db86f1f38c66b112d8dcba4",
+      "bytes": 7783
+    },
+    {
+      "path": "app/admin/coach/training-plans/components/ExerciseQuickViewDrawer.tsx",
+      "sha256": "71c00cbf2bb49e76dd53647025b2442f85d6281b775a5c86a255bcda8cbb5d11",
+      "bytes": 17307
+    },
+    {
+      "path": "app/admin/coach/training-plans/components/TrainingPlanBuilder.tsx",
+      "sha256": "a5802735ef3166c78606286400b83f37e55151ba491ac1bade67aa94f07aeb0b",
+      "bytes": 41494
+    },
+    {
+      "path": "app/admin/coach/training-plans/components/options.ts",
+      "sha256": "d6e90aff6466d8f4e44fe036910e25171ee455281cc97bc02d703bbd00e38b11",
+      "bytes": 3306
+    },
+    {
+      "path": "app/admin/coach/training-plans/components/training-plan-service.ts",
+      "sha256": "ce7da223ccac54c3752473098395939724aa4a0b561f8af853df818a2ee09988",
+      "bytes": 6842
+    },
+    {
+      "path": "app/admin/coach/training-plans/components/types.ts",
+      "sha256": "47333583020ae0c36bc46dcdd259ca1f147c85bc50097479a7bb55c137cdebff",
+      "bytes": 2312
+    },
+    {
+      "path": "app/admin/coach/training-plans/components/useTrainingPlanUnsavedChanges.ts",
+      "sha256": "ba96a931161e4296a27a7b8bc2c81b4d3f6cadbe80ccb4959a0ba8008763ef8e",
+      "bytes": 4832
+    },
+    {
+      "path": "app/admin/coach/training-plans/new/page.tsx",
+      "sha256": "6797b4586939e2414e40f9b1b34f1695368556232c272d62dfc6c381955f33ba",
+      "bytes": 504
+    },
+    {
+      "path": "app/admin/coach/training-plans/page.tsx",
+      "sha256": "f95c7bed24c65c0c8ed1c7d3cf90bbb59ff0aac56711df96a62dab6ba346d3f4",
+      "bytes": 17190
+    },
+    {
+      "path": "app/admin/competitions/[competitionId]/page.tsx",
+      "sha256": "29429d405a796bec0f039752c62c4043f454a3a0cb773f4367fdeffdb226bc68",
+      "bytes": 64446
+    },
+    {
+      "path": "app/admin/competitions/page.tsx",
+      "sha256": "28102020e4755ef492f96b2ec9c444b624a461f92ce16c5b89f25ec29ee21477",
+      "bytes": 32716
+    },
+    {
+      "path": "app/admin/gallery/[albumId]/page.tsx",
+      "sha256": "89de22e5d197e832bd1a98d9df111359042d73cd5b0de513fef0a52bf2ce65ba",
+      "bytes": 47093
+    },
+    {
+      "path": "app/admin/gallery/new/page.tsx",
+      "sha256": "d892a91c38378d25ba357c588e4486ba46286e334811a134e210c50825c7eee0",
+      "bytes": 25873
+    },
+    {
+      "path": "app/admin/gallery/page.tsx",
+      "sha256": "cb142aae626b66336afe3d4dcbb9dd50e45e9e670493f78052764e00a8ab58d9",
+      "bytes": 26637
+    },
+    {
+      "path": "app/admin/layout.tsx",
+      "sha256": "58f48a8911633551efb6b9a7368134ca9f47389bd619ee73935c7f52ade2631c",
+      "bytes": 424
+    },
+    {
+      "path": "app/admin/login/page.tsx",
+      "sha256": "f5df0636300acc2fc1a4b95e7b948321c24d9f7f35b413cb881f04f2bf7f7abb",
+      "bytes": 5146
+    },
+    {
+      "path": "app/admin/matches/[matchId]/statistics/page.tsx",
+      "sha256": "cf5122bdb13143fe95bf86f44e04afb304309302fe11f6b2180205465ca063ea",
+      "bytes": 42145
+    },
+    {
+      "path": "app/admin/matches/page.tsx",
+      "sha256": "ac6705c57bdbdad9b3455c8b5cb027fffcdd8f52b2d1b76d03225dd4c0dfaf23",
+      "bytes": 53533
+    },
+    {
+      "path": "app/admin/news/[newsId]/page.tsx",
+      "sha256": "0a9d2e469c9f2780bc3692552259096925eeebfb427a9def089f034b6c577782",
+      "bytes": 27975
+    },
+    {
+      "path": "app/admin/news/new/page.tsx",
+      "sha256": "29ebcfdd79f4a7b0d1027563c20f95b2866a74b1d9283daf0426fc507cb15761",
+      "bytes": 25247
+    },
+    {
+      "path": "app/admin/news/page.tsx",
+      "sha256": "38ab5516c8e8ff4378a15092396190ab06a28ff29508a9c56dee8bb8532757c7",
+      "bytes": 16592
+    },
+    {
+      "path": "app/admin/page.tsx",
+      "sha256": "17296cb46f96e04512f754a10a7cfbb70fc2f6cd8b42ffc17223075ade5ee3ef",
+      "bytes": 14437
+    },
+    {
+      "path": "app/admin/players/page.tsx",
+      "sha256": "10a67fc7afd07ead791007ce69e6ddd1841271f2043f4a585dbf2f682e446692",
+      "bytes": 36939
+    },
+    {
+      "path": "app/admin/push/page.tsx",
+      "sha256": "36804ce6714eac171675a2652af167ff19206e872433b21e2e453ace4663a1df",
+      "bytes": 1775
+    },
+    {
+      "path": "app/admin/statistics/page.tsx",
+      "sha256": "ef92b7de43618bc3643b9be4399d766f4baabdaf5948ef56471cbf0d5f3fb70a",
+      "bytes": 26263
+    },
+    {
+      "path": "app/admin/trainings/page.tsx",
+      "sha256": "1008eeaf6bc635c03842ec0e8af35a466f208f6ccb7b8f7ab3a465592f7fb927",
+      "bytes": 37912
+    },
+    {
+      "path": "app/api/push/send/route.ts",
+      "sha256": "bffd120599e7611e9dcedb5eeef4b6166ce77f99da5c0beee47c16029329de68",
+      "bytes": 5182
+    },
+    {
+      "path": "app/api/push/subscribe/route.ts",
+      "sha256": "0bbab691a878f0f4560e572cc656fa239b8685900d2372162ecf75a7842823d3",
+      "bytes": 3619
+    },
+    {
+      "path": "app/favicon.ico",
+      "sha256": "2b8ad2d33455a8f736fc3a8ebf8f0bdea8848ad4c0db48a2833bd0f9cd775932",
+      "bytes": 25931
+    },
+    {
+      "path": "app/gallery/[slug]/page.tsx",
+      "sha256": "6ff222a637f70cb97a3d14d9a2bbbda744b04098b279b279cce510be39e80754",
+      "bytes": 21276
+    },
+    {
+      "path": "app/gallery/page.tsx",
+      "sha256": "37e02b2b1577915933eb6bcb02fd8acaae11ba203206c9a5575f9f748367ea8a",
+      "bytes": 16666
+    },
+    {
+      "path": "app/globals.css",
+      "sha256": "ea3d54b9b9649e29187b58090d94c2059bb63aa45411fa68c0371b4d44ebf895",
+      "bytes": 524
+    },
+    {
+      "path": "app/layout.tsx",
+      "sha256": "0df8beebfe484449684d399c555dd82425970d17041f19bec21de77e96c6ad79",
+      "bytes": 3870
+    },
+    {
+      "path": "app/manifest.ts",
+      "sha256": "6aea4caf12ed1acab42b47971b09b1445cd74ec50499b02a115bd91bbc462379",
+      "bytes": 1172
+    },
+    {
+      "path": "app/news/[slug]/page.tsx",
+      "sha256": "42fe17c5296c9a27816c1b1560f02db3d5b7f527bc2890554582f59bc5889472",
+      "bytes": 10039
+    },
+    {
+      "path": "app/news/page.tsx",
+      "sha256": "5c87a58d1e1038bfdd883dd6e7c26bcbf4558c8eb2f1c40e2ee99dc9bca67945",
+      "bytes": 10256
+    },
+    {
+      "path": "app/page.tsx",
+      "sha256": "e606cc38cd64377c46e6406c53e908c7e59a3b680241a95ed84066f560ae772a",
+      "bytes": 858
+    },
+    {
+      "path": "app/robots.ts",
+      "sha256": "b9347e91c16ec9f25afab40d3e455ecfedad64da49bf97b22fb75c58ef5ceb63",
+      "bytes": 317
+    },
+    {
+      "path": "app/sitemap.ts",
+      "sha256": "528ab135bfd3633d6db06eaa9ba5cf3c5e4be775122332a2f0d6d382111039d9",
+      "bytes": 318
+    },
+    {
+      "path": "app/sw.ts",
+      "sha256": "599c2c67ab6d43371b542a3de5facaf4519542e13c2bfe03c01c3229ca26ab33",
+      "bytes": 3299
+    },
+    {
+      "path": "app/training/page.tsx",
+      "sha256": "c67072ffdcfe0263795af27c4914a56a663df264e0364981787388d4f96a63d3",
+      "bytes": 468
+    },
+    {
+      "path": "components/About.tsx",
+      "sha256": "09859bec6e4053bdb57649846e3b58c25ce671ce32771db2cd3564e35d88cfb8",
+      "bytes": 3529
+    },
+    {
+      "path": "components/Achievements.tsx",
+      "sha256": "d3fd5ead0bf27f345d3de89ccfc7b2eb8f82cef35c2c39793b1a765e027e80fb",
+      "bytes": 4121
+    },
+    {
+      "path": "components/BackToTop.tsx",
+      "sha256": "a3506fa9d8d3096e75d05ef5f949eda2a78eabb3dc7153a370bd427b89837539",
+      "bytes": 1546
+    },
+    {
+      "path": "components/Contacts.tsx",
+      "sha256": "6dd396a75b5e91c2cb94d1d19bcef569a08a1c6035ead94dd354a53bdd922123",
+      "bytes": 6813
+    },
+    {
+      "path": "components/Footer.tsx",
+      "sha256": "e7472d4d5343e6f175b702607b6770e27840dd7be1894f38c635cfe106183e2b",
+      "bytes": 5039
+    },
+    {
+      "path": "components/Gallery.tsx",
+      "sha256": "3b08cd14a6279da0602a14e5f35154796d889c3ed30b86d469def3c1a2c425f4",
+      "bytes": 9976
+    },
+    {
+      "path": "components/Header.tsx",
+      "sha256": "4f1cb6858ef4c1055e6b8914a14c9fc82d5853069e86953d8ad0cd15e98de39b",
+      "bytes": 8325
+    },
+    {
+      "path": "components/Hero.tsx",
+      "sha256": "5eaf4e221d2fff54a1fe3fe1f5aee9532ee14f9aacb15f9b70dbe305f1508d31",
+      "bytes": 3552
+    },
+    {
+      "path": "components/History.tsx",
+      "sha256": "57350eade0e0583024dae9b5b1b2df521e5813d91b3769f733bda71a17bc5b30",
+      "bytes": 4425
+    },
+    {
+      "path": "components/Socials.tsx",
+      "sha256": "26f72381b4222b5d9dca6e6ad002a343ddd2bace2ba7efdfa76e35169fd78372",
+      "bytes": 5381
+    },
+    {
+      "path": "components/Stats.tsx",
+      "sha256": "4fc631b26745f4544e60994d3a26325620a222304baa2437f7283bf21b940674",
+      "bytes": 1193
+    },
+    {
+      "path": "components/Training.tsx",
+      "sha256": "7d97c95a3a84e61c343ab9ec3b0dbf7f51961226b5c7bb80641eafd2eed8296c",
+      "bytes": 25173
+    },
+    {
+      "path": "components/admin/PushAdminForm.tsx",
+      "sha256": "e0ccde70628bc6fed5aea20676e21314570dd9e284c407e7d6fc9701189c71aa",
+      "bytes": 8658
+    },
+    {
+      "path": "components/matches/MatchDetailsCard.tsx",
+      "sha256": "3fbcafd5e3a4a5df8508ba7164c265c0f2f80fb69519bb58dfe4f4f103a90e4a",
+      "bytes": 5546
+    },
+    {
+      "path": "components/training/AttendanceList.tsx",
+      "sha256": "4e6c2787a7215f4c54e7b7fe9e9dd3e2d6e639f24c75aef84b21095ad8a40dd2",
+      "bytes": 5046
+    },
+    {
+      "path": "components/training/PlayerIcon.tsx",
+      "sha256": "23b2f2f5859583c2aa1cbf2d53b4a7b26a4cc3c6fad04ad32967672db53aabe9",
+      "bytes": 886
+    },
+    {
+      "path": "components/training/PlayerSelect.tsx",
+      "sha256": "892ef7a19f374ab34c581e43eaff2e1aa47f00bbe11cf1ca351f39d3772a346e",
+      "bytes": 6046
+    },
+    {
+      "path": "components/training/TrainingForm.tsx",
+      "sha256": "a77ada8e2bb4abee824862bcf3455a84457f0141064bf03268a8049df10551fd",
+      "bytes": 19566
+    },
+    {
+      "path": "components/training/constants.ts",
+      "sha256": "22bee07320bfdff5d7c6dd6bae7cad6e2abbd4dafd1a2c5a480a70af13c94648",
+      "bytes": 654
+    },
+    {
+      "path": "components/training/types.ts",
+      "sha256": "ac871e05964da5ec53ef69a5106cef6e9cd29b8f75185e8229d28d4dfbdccd61",
+      "bytes": 978
+    },
+    {
+      "path": "components/training/utils.ts",
+      "sha256": "2035b3062f81f354750e5378443e7b6b3ddfb28a9ee6f47cd6cd48280b1bf7aa",
+      "bytes": 1974
+    },
+    {
+      "path": "components/ui/Modal.tsx",
+      "sha256": "f0056bcc30e2418c219dad3f2e5d51f12e842060e7e07449cac257924096a062",
+      "bytes": 1416
+    },
+    {
+      "path": "content/exercises/Attacking-Combinations-Content-Pack-v1-Catalog.md",
+      "sha256": "79109a973f20123ef2d1811202e2ad8cb51449a080657ad52dbaa75804b4cd77",
+      "bytes": 2258
+    },
+    {
+      "path": "content/exercises/Defending-Content-Pack-v1-Catalog.md",
+      "sha256": "634f601a51a5b7aa431530e688d9e58aee02dcd12f480f10a636eaf3c2d9b2d5",
+      "bytes": 2966
+    },
+    {
+      "path": "content/exercises/Finishing-Content-Pack-v1-Catalog.md",
+      "sha256": "fd569cf9912e8e6ca26c93c0dade87f0101a233741680020ea8e8bcd27ac59f3",
+      "bytes": 2012
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Attacking-Combinations-v1-manifest.json",
+      "sha256": "be216f2ce44d58908ab6339d5571f89cff556a960175a2f0b70d0c907891fa0e",
+      "bytes": 649
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Attacking-Combinations-v1.csv",
+      "sha256": "13b47587106d12d1e071a4bbdf6e2b2d0fa7c43f2d15217a9d61f70910ebb9da",
+      "bytes": 25204
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Attacking-Combinations-v1.json",
+      "sha256": "9822e7b7c953562c70d133d0844caefab92b366e8345265bd8f7e11c622c436c",
+      "bytes": 32245
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Defending-v1-manifest.json",
+      "sha256": "f90f575643e982d584a50d92bc3df864a36e8bc7180f7731e79c4699f506d9d8",
+      "bytes": 533
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Defending-v1.csv",
+      "sha256": "ec354b0128006950f3d6f2de1bccc98d29ab2bfd007a905b9c23a7557e8afefa",
+      "bytes": 27191
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Defending-v1.json",
+      "sha256": "f8fe5fffd49c3b7c5af01bcf715758e38d4e22a15276731c14c5bcb75df7c078",
+      "bytes": 34144
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Finishing-v1-manifest.json",
+      "sha256": "15b63fa5b3cd904421b939703082b171b8fc7005b998caf2ec3ef17cc8a98f29",
+      "bytes": 387
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Finishing-v1.csv",
+      "sha256": "b486cf6c04ddf02397fa212c6d14511ee7376188a9c4477ac0ff41132f09bee4",
+      "bytes": 24239
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Finishing-v1.json",
+      "sha256": "08579499b14af267216f2f5220b7327fb6c15b9a7645a69da59dcd1edb78727a",
+      "bytes": 31302
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Passing-v1-manifest.json",
+      "sha256": "a5407f6e4fee52b40b10be379c532861dcfab78382c3ca46d24bec490cbda657",
+      "bytes": 490
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Passing-v1.csv",
+      "sha256": "2a0c1f03bc8f528bec42ea26edda5c6376bfa7e7023d6397dd18461d1d109a1f",
+      "bytes": 39721
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Passing-v1.json",
+      "sha256": "0136d8d077590332a795ab0cdfa656d627185e698b01c6470dfc7c1fb1350a0a",
+      "bytes": 50377
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Set-Pieces-v1-manifest.json",
+      "sha256": "322c264b81a1261123fc3ddba7d03f6efd45e3d70ab96908bd0d6f20bbd4c696",
+      "bytes": 489
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Set-Pieces-v1.csv",
+      "sha256": "996410b927773ccc3e7ddcf48fdbe3ea5936455714157d53005a7a74026f1c79",
+      "bytes": 23474
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Set-Pieces-v1.json",
+      "sha256": "13c100420c5b9e9e29d6834ad839c7065eb9aee6e387ca8a5d835b58de6e03b0",
+      "bytes": 30559
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Tactical-Systems-v1-manifest.json",
+      "sha256": "1c154bb8cc2b483871f5dba619fb660297b5e5f3f66ace1dfc4954323566e5d2",
+      "bytes": 743
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Tactical-Systems-v1.csv",
+      "sha256": "cfb4ccf64a17f5a4e4548763c781eb9bb0429df03f4962774f3d0a7d32e89bab",
+      "bytes": 26166
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Tactical-Systems-v1.json",
+      "sha256": "1aa1101db19f7798835d4cf5168d55be28c3688a506b1f62efc36b493d6655ff",
+      "bytes": 33141
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Technical-v1-manifest.json",
+      "sha256": "e81eadd2cf262d9361659c21b01b611d8be66d2ec414281c0102a8a508973d3e",
+      "bytes": 1624
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Technical-v1.csv",
+      "sha256": "a21547fed02ed355ded9d3bb822625e4b660de4aaeaeaf69adb3da96cce3c472",
+      "bytes": 43497
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Technical-v1.json",
+      "sha256": "3034ac8608dafac7f983d1d0c665cf650c73eccf11ab3b6128a2b4c9c433d8c6",
+      "bytes": 54247
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Warmup-v1-manifest.json",
+      "sha256": "e53d3e3b1e045257521bca52a029539812376730670c767eaff16bf3d884443f",
+      "bytes": 1329
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Warmup-v1.csv",
+      "sha256": "0591948fd68cd97cba042728f39f77e3a120c45b23a15a2094e7982a46cd2171",
+      "bytes": 42608
+    },
+    {
+      "path": "content/exercises/Futsal-Exercise-Library-Warmup-v1.json",
+      "sha256": "746996c7e677fa4b1406dc24369befbee58b695ec9f43feacaeb57f80cd9f38e",
+      "bytes": 53512
+    },
+    {
+      "path": "content/exercises/Passing-Content-Pack-v1-Catalog.md",
+      "sha256": "c680a3946c3f1bd021fab4a51cf1c7ee98f8d6acdb8ec2d059e08b739a69f748",
+      "bytes": 3683
+    },
+    {
+      "path": "content/exercises/Set-Pieces-Content-Pack-v1-Catalog.md",
+      "sha256": "9f4c248626b6663c5f1ee435f3c6be8ea741cd22fe11e21552cd37ba58f8876f",
+      "bytes": 2133
+    },
+    {
+      "path": "content/exercises/Tactical-Systems-Content-Pack-v1-Catalog.md",
+      "sha256": "7f57b0247d073efd2ea4f6ab9758d50094dcf746af11c9b16e37e0049a4c0a2c",
+      "bytes": 2110
+    },
+    {
+      "path": "content/exercises/Technical-Content-Pack-v1-Catalog.md",
+      "sha256": "f2077134dd9ac8a70b70c15be76674f86e1456637bc3b3dc61810c1bf4e5977b",
+      "bytes": 3584
+    },
+    {
+      "path": "content/exercises/Warm-up-Content-Pack-v1-Catalog.md",
+      "sha256": "e660619c349abfe6651be6291df6984f22de5786fd19113cc4df8c2654c66302",
+      "bytes": 3129
+    },
+    {
+      "path": "content/visuals/Passing-Visual-Pack-v1-Brief.md",
+      "sha256": "cb09f1c7e57d00c47452bf44e5b5f337ab0a5b83248844479894f4c966949793",
+      "bytes": 2430
+    },
+    {
+      "path": "content/visuals/Technical-Visual-Pack-v1-Brief.md",
+      "sha256": "b33441a7fc7e25918fe7874fc1323ff58e66f07ec01ef046592acb5f92ecc359",
+      "bytes": 3974
+    },
+    {
+      "path": "content/visuals/covers/PASS-001-cover.png",
+      "sha256": "fef177043737347e96f5edb78058a98939a5746c4876420db2aa93cbe5cf4c2a",
+      "bytes": 1838395
+    },
+    {
+      "path": "content/visuals/covers/PASS-002-cover.png",
+      "sha256": "8e7bc1fdf20d0ffb2356b0f9bf998fba67deea08d57d8c742ceefbe8747af268",
+      "bytes": 1832606
+    },
+    {
+      "path": "content/visuals/covers/PASS-003-cover.png",
+      "sha256": "c236c277fae202c473a7cb45b61ea9bed9e1e952832cff4f67bb2afff0fe9cf0",
+      "bytes": 1850378
+    },
+    {
+      "path": "content/visuals/covers/PASS-004-cover.png",
+      "sha256": "7af995aad882a282f84b7e650593b445bf8a56dd3cbdccf71685e9790ff21214",
+      "bytes": 1772984
+    },
+    {
+      "path": "content/visuals/covers/PASS-005-cover.png",
+      "sha256": "0ad98db6a2559062e80b416be7c89a958c5b5b234eb45dc09377d9a266df6940",
+      "bytes": 1741303
+    },
+    {
+      "path": "content/visuals/covers/PASS-006-cover.png",
+      "sha256": "930e369860385e11cd9af3829c6414ceedf5baaab1a52d7a0aa3813195474fe2",
+      "bytes": 1825501
+    },
+    {
+      "path": "content/visuals/covers/PASS-007-cover.png",
+      "sha256": "71c699246fcde7e61672cb1bd028119272a98c54bd2b4e1027852a912bc1e1c8",
+      "bytes": 1946615
+    },
+    {
+      "path": "content/visuals/covers/PASS-008-cover.png",
+      "sha256": "016be59758aaac8e8be7ec68e1f807dc9dd27e55e52913a09dd3ef1d6b0fdd5a",
+      "bytes": 2041845
+    },
+    {
+      "path": "content/visuals/covers/PASS-009-cover.png",
+      "sha256": "f3df307ac34655b3bf6c4d6b226831a61eb157e7d2954ce754feacda72a0a03b",
+      "bytes": 1982914
+    },
+    {
+      "path": "content/visuals/covers/PASS-010-cover.png",
+      "sha256": "668faee79bbcf2e702d802543b073ddaac39ab5340eb2a12b7f97bd70d71cfae",
+      "bytes": 1819933
+    },
+    {
+      "path": "content/visuals/covers/PASS-011-cover.png",
+      "sha256": "969f6e71b281145cf6d4dab3d26eb5d61ea569010c6d20b7073ee2e7ac8ba1b3",
+      "bytes": 2050294
+    },
+    {
+      "path": "content/visuals/covers/PASS-012-cover.png",
+      "sha256": "8e954ccb1cecba9446df2555721b0e9fb8c4f4f54fb33a01da168c7421572b14",
+      "bytes": 2019103
+    },
+    {
+      "path": "content/visuals/covers/PASS-013-cover.png",
+      "sha256": "e7d36f0d3240bf02f1749840d05e5cf56268549974e9bbd628214dee37e215e1",
+      "bytes": 2128497
+    },
+    {
+      "path": "content/visuals/covers/PASS-014-cover.png",
+      "sha256": "b142ee3e9ca519d0538de0c8b07b459097e81fc8eb4b58581684b542767ce9e8",
+      "bytes": 2180036
+    },
+    {
+      "path": "content/visuals/covers/PASS-015-cover.png",
+      "sha256": "fe36ec8d610c6561ca563c594e55b2b06cde8e0dce0ffc7f3607b2a6a10ae1bb",
+      "bytes": 2244890
+    },
+    {
+      "path": "content/visuals/covers/TECH-001-cover.png",
+      "sha256": "33c06dcbe34954950a09dc458ea18564655d3a93130b31f638c6be69a37b1882",
+      "bytes": 1741376
+    },
+    {
+      "path": "content/visuals/covers/TECH-002-cover.png",
+      "sha256": "ac21204354918fbcbdbbb6ccab7b0c2658c485b180b2a37b0ee311ce83d732a7",
+      "bytes": 2092235
+    },
+    {
+      "path": "content/visuals/covers/TECH-003-cover.png",
+      "sha256": "704c13efbfc673f549e87ce55a2759a610316f4052666aeb90c1b3b98f062372",
+      "bytes": 1842149
+    },
+    {
+      "path": "content/visuals/covers/TECH-004-cover.png",
+      "sha256": "8709f9e1a9cae04bcf2b023025e5a7a4dab4fc3d2ad06ca1be6d776365123275",
+      "bytes": 1737790
+    },
+    {
+      "path": "content/visuals/covers/TECH-005-cover.png",
+      "sha256": "689aeb7e9a104a6a5cd042f73adb698bd9a47cd23d7c9a6ea5990c3ce20ad3a8",
+      "bytes": 1963366
+    },
+    {
+      "path": "content/visuals/covers/TECH-006-cover.png",
+      "sha256": "d9edd63bae2ec489ff18197e1eadb39ff68a2f0168d794eb1564345129bf2c67",
+      "bytes": 1899455
+    },
+    {
+      "path": "content/visuals/covers/TECH-007-cover.png",
+      "sha256": "c3b19612ce3872cd72b142e140bc4f5385d2b714eca574f99e426c8711617ddd",
+      "bytes": 1924254
+    },
+    {
+      "path": "content/visuals/covers/TECH-008-cover.png",
+      "sha256": "6a1754526548bc3919373ce7d69063062333f6aea0521cd66636cfd59024926a",
+      "bytes": 1962055
+    },
+    {
+      "path": "content/visuals/covers/TECH-009-cover.png",
+      "sha256": "77b04f4693022d919c447c7cb2f8334024f6e43a0e9de4d3bd5279c65601b2f0",
+      "bytes": 1992137
+    },
+    {
+      "path": "content/visuals/covers/TECH-010-cover.png",
+      "sha256": "5e32940ee6d36af529d07c4f1e3a4de277e1c7203c0e9f22577a692e9356f540",
+      "bytes": 2019898
+    },
+    {
+      "path": "content/visuals/covers/TECH-011-cover.png",
+      "sha256": "a077b1416a2a125f7560f212ef91cb581929d7d1890f7212ea138fcbb5bfe6db",
+      "bytes": 2121400
+    },
+    {
+      "path": "content/visuals/covers/TECH-012-cover.png",
+      "sha256": "bba5b0348956877ab5487e4803390f4ff9ece28e2e8bfd7abfbbcda618ca195a",
+      "bytes": 2069892
+    },
+    {
+      "path": "content/visuals/covers/TECH-013-cover.png",
+      "sha256": "4e556da4a6e168ca8be49c83ae2de3638e7d742e15adbdcec94b2e23b3bf5727",
+      "bytes": 1913086
+    },
+    {
+      "path": "content/visuals/covers/TECH-014-cover.png",
+      "sha256": "d1e3c25d999eded8d67e9aa0d060f8a585b9c7c92235cf1e46a4ddd1e28072a9",
+      "bytes": 1957127
+    },
+    {
+      "path": "content/visuals/covers/TECH-015-cover.png",
+      "sha256": "d8c9c1643de6670b85323b818ac717a7e8286dae846e23f139c4e72fde6de0f1",
+      "bytes": 2084042
+    },
+    {
+      "path": "content/visuals/diagrams/SET-001-diagram.png",
+      "sha256": "81adc103a9aff2c4760a9ea9aa7c6c2221c608ffff18fa87cd201601074a0558",
+      "bytes": 674588
+    },
+    {
+      "path": "content/visuals/diagrams/SET-002-diagram.png",
+      "sha256": "4d7fd31cc96e58e7d5debb49ca45498710fe16ebf38762e43e0ed05c5c1de718",
+      "bytes": 576918
+    },
+    {
+      "path": "content/visuals/diagrams/SET-003-diagram.png",
+      "sha256": "82145b8a1c4ac3cf0ae528cea59a40346287a3ebb09bda08e6cc3a6e14e43bca",
+      "bytes": 844286
+    },
+    {
+      "path": "content/visuals/diagrams/SET-004-diagram.png",
+      "sha256": "2a6f284ca68fcc1d8c6680c84df17a39de2c6895d4be299bfb39e21bde4eb601",
+      "bytes": 848841
+    },
+    {
+      "path": "content/visuals/diagrams/SET-005-diagram.png",
+      "sha256": "6f214176fc9cdc3ba648394779f60b65e753c95ddd11480d1ef1bd83e69ead07",
+      "bytes": 838309
+    },
+    {
+      "path": "content/visuals/diagrams/SET-006-diagram.png",
+      "sha256": "02fadc71a954c383f64093c828be16278da8f6ecfc15a5df5143c8da138b0251",
+      "bytes": 846741
+    },
+    {
+      "path": "content/visuals/diagrams/SET-007-diagram.png",
+      "sha256": "5c4d4228c17e81d046d792e13219db362bc606585d8768ec69344e9b88b218f1",
+      "bytes": 620097
+    },
+    {
+      "path": "content/visuals/diagrams/SET-008-diagram.png",
+      "sha256": "609d64dd06c9f38df7f0bf90559c1ed518b6bc1b7f20e416d4d8921b56122e77",
+      "bytes": 856633
+    },
+    {
+      "path": "content/visuals/diagrams/SET-009-diagram.png",
+      "sha256": "3beda8294d5deca188f443f8c752c8fff420dda814db8e7907088445753a2dcd",
+      "bytes": 841793
+    },
+    {
+      "path": "content/visuals/diagrams/SET-010-diagram.png",
+      "sha256": "b3197e00da8d1d94a5a7f00566c5da76ad8df776f662cdb4bbe447946cee0722",
+      "bytes": 528467
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-001-diagram.png",
+      "sha256": "17b16e0b841bbd7452a2e987fe547a161299e0c628b815e0ed55e5024050657d",
+      "bytes": 1008636
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-002-diagram.png",
+      "sha256": "031dd2da68952518f79db85d6f9df83b002a03e2c9f368af71623215a467cd7e",
+      "bytes": 1231084
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-003-diagram.png",
+      "sha256": "093107846405c6408cea19383a0b7807ac838d0533988f6f94afa1ab060fefd7",
+      "bytes": 1081053
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-004-diagram.png",
+      "sha256": "5e7b29186930b3cb3e463512572b5589c17bb9f53df095156551b0a51c257ae6",
+      "bytes": 1106624
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-005-diagram.png",
+      "sha256": "51d840274c505049b2dbdf749755c0ee17db8fcaf36144319b64b522e010bb93",
+      "bytes": 1079424
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-006-diagram.png",
+      "sha256": "d8e2259d7d1bb828aa5505bc934f5393dfba75e075cfcbf2c67c67af84584aec",
+      "bytes": 1279532
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-007-diagram.png",
+      "sha256": "ebdc6a961211b4c50afb36e27d14538ccf32c1f98dfb076b33c6bfef67f0995b",
+      "bytes": 1562923
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-008-diagram.png",
+      "sha256": "20933558318062cffd30cc7257e3da060491c88d545b7a2e78bfa86535989d4e",
+      "bytes": 1319575
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-009-diagram.png",
+      "sha256": "3bcf6fe818d5b93eb15363d1f061a9b7594473c93917e3c0365bb0e92d91fcb1",
+      "bytes": 1503083
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-010-diagram.png",
+      "sha256": "49321df615ca505a6cb8018107299d80062e7d4c5c1f164c723e42de86462c6d",
+      "bytes": 1428387
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-011-diagram.png",
+      "sha256": "ae84470495f83e094eac7ccc6e71a45ae857a4e03c69df84125f80cd8946d91a",
+      "bytes": 1282725
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-012-diagram.png",
+      "sha256": "f61ecf19c9f4fc9b62da71d4462bcc92878f41c0ed4571abcc63bc73aefa3c7f",
+      "bytes": 1258887
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-013-diagram.png",
+      "sha256": "1a02267311712c6e81fac20194c1fed3deb21665794e01a0f0628462260b6544",
+      "bytes": 1355517
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-014-diagram.png",
+      "sha256": "213ad009a39824667c22e8576de3052c7c92b7aea5fb73e45004ccff41f7055f",
+      "bytes": 1491783
+    },
+    {
+      "path": "content/visuals/diagrams/TECH-015-diagram.png",
+      "sha256": "7b11d84b048fdc8b3c42a18069b65dc1de6d1ec9dacfb2e5730224e2bab4b1f8",
+      "bytes": 1312857
+    },
+    {
+      "path": "docs/00-README.md",
+      "sha256": "cb20e65b8c8d70c43e190ba8a7131c4b91f762f5a9c9ff497b8630ce54f194ca",
+      "bytes": 3511
+    },
+    {
+      "path": "docs/01-project-overview.md",
+      "sha256": "5e6442a6811847333d0f2394fdd5fc06c6a07b36bc175f46fda78720293e556f",
+      "bytes": 6928
+    },
+    {
+      "path": "docs/02-architecture.md",
+      "sha256": "d0ae5259d7555f19020108bd6bd1509ab8788a2f1b50d014768abaedfe425aab",
+      "bytes": 6979
+    },
+    {
+      "path": "docs/03-database.md",
+      "sha256": "ab23e055295926cd211bfdf847d9a948f53dfd34fe5ba83786728a92a7a02959",
+      "bytes": 5844
+    },
+    {
+      "path": "docs/04-er-diagram.md",
+      "sha256": "302bed53d893c4de3def577debf6a0cd8bc73fd60a4d4403ed4b7f28cb4aafe7",
+      "bytes": 4499
+    },
+    {
+      "path": "docs/05-tables.md",
+      "sha256": "19da58f821b8afa49dd1f914f70d975c2486a3a2ec422449ff09343a2be27fb1",
+      "bytes": 10725
+    },
+    {
+      "path": "docs/06-functions-and-triggers.md",
+      "sha256": "4c97fd12e3c922da29544cea8f88d2476160823108e75ddd1b2b4f1d59fc8bd4",
+      "bytes": 6745
+    },
+    {
+      "path": "docs/07-business-logic.md",
+      "sha256": "aed52ee8b1456dd05d84b3d53687bcdfeeaec11349d110cd2aece495644ada7b",
+      "bytes": 7690
+    },
+    {
+      "path": "docs/08-modules.md",
+      "sha256": "dcbf3add41610efcdbad7a9d2fe117d7b05d96ff17b95872dfb3ee87efd5b42f",
+      "bytes": 6686
+    },
+    {
+      "path": "docs/09-pwa-and-push.md",
+      "sha256": "f066013451fa65057a964c852033a504f7da906d53d4042d197e18cbfe3337c7",
+      "bytes": 5706
+    },
+    {
+      "path": "docs/10-deployment.md",
+      "sha256": "fb768706c652f3b188ebbab98db609f5403804dc0216dee54f514a631559a3d3",
+      "bytes": 5090
+    },
+    {
+      "path": "docs/11-testing-and-release.md",
+      "sha256": "be3c6f3a3d8af9c8a5e4244a66f5dad59b2790e3aa93ad424c95228c18ea8b3e",
+      "bytes": 6266
+    },
+    {
+      "path": "docs/12-admin-guide.md",
+      "sha256": "43f7dd560d66e228e027f41813ba28bba92291481108d825ef402207f2616dfe",
+      "bytes": 6896
+    },
+    {
+      "path": "docs/13-player-guide.md",
+      "sha256": "926c6a4ea44234d70ed8f24bd2f9e38d4db4fd48efe8694388e9ad0c062efb2a",
+      "bytes": 5816
+    },
+    {
+      "path": "docs/14-roadmap.md",
+      "sha256": "dd8e722020745546e9bc4403426bd111607f86697b2c79f7d1169c62c2e3f01f",
+      "bytes": 3931
+    },
+    {
+      "path": "docs/15-design-system-and-components.md",
+      "sha256": "2d7769b95029fa3dbb7f6ebdc9dd8103f14373be685e4ff8081ab230f332e035",
+      "bytes": 644
+    },
+    {
+      "path": "docs/16-architecture-decisions.md",
+      "sha256": "4e88fb99a75d60ffe823444d0cd44bc03e5d037cc8fd8193466b283c95b87185",
+      "bytes": 10235
+    },
+    {
+      "path": "docs/17-sprint-3-create-edit.md",
+      "sha256": "8a198643f33b2663983f9915118695682f762d0f67b548d52b1412e9e92359b6",
+      "bytes": 15122
+    },
+    {
+      "path": "docs/18-current-state.md",
+      "sha256": "79e2bf945112ef64168c9d710961c3b8ae455287e9ffa916d1338863099dee49",
+      "bytes": 1925
+    },
+    {
+      "path": "docs/19-tech-debt.md",
+      "sha256": "04bebc716a293ca0ccaa8666e06ea62d0eec3c51e32836834bc804bcc6adf001",
+      "bytes": 2109
+    },
+    {
+      "path": "docs/20-sprint-4-exercise-import.md",
+      "sha256": "f5ca54d84c0973a4af0dc60467526fa5df93a2ea57716f62f6881f079a55f0c2",
+      "bytes": 5678
+    },
+    {
+      "path": "docs/21-sprint-4-coach-workspace-navigation.md",
+      "sha256": "b90dcab0c691639fbc5a1c989f5637f2f96efffae5ce5784c2dc3aa2891a79d8",
+      "bytes": 3392
+    },
+    {
+      "path": "docs/22-sprint-4-exercise-media-import.md",
+      "sha256": "1f38283f46d3af459d1a888f48bb7152687b97f02eee6de343bb476fde9b3550",
+      "bytes": 4503
+    },
+    {
+      "path": "docs/22-sprint-4.1-warm-up-content-pack.md",
+      "sha256": "54025745f7846e23204f3a0e388bb9fbb1a764b93c6d2c842e045f69b4ff16f1",
+      "bytes": 1845
+    },
+    {
+      "path": "docs/23-sprint-4.2-technical-content-pack.md",
+      "sha256": "672ba227321da97b534ab08e31770be0bc2aa4b0f91bff77b8bcf6d1ff7c1c12",
+      "bytes": 1658
+    },
+    {
+      "path": "docs/24-sprint-5-training-builder-foundation.md",
+      "sha256": "29056adfcd049278351f649fb43b793e37f025d66b31775c169df72081ffd15c",
+      "bytes": 7335
+    },
+    {
+      "path": "docs/25-sprint-5-0-1-training-builder-qa-fixes.md",
+      "sha256": "3d3e172ab133283f890675cae8a558c2c87fd0702b6a1e26ffb1530ab479c961",
+      "bytes": 2066
+    },
+    {
+      "path": "docs/25-sprint-5.0.2-training-builder-save-and-layout-qa-fixes.md",
+      "sha256": "3844f3e1c7ad0398c33854adc99375092a73db3faa0ca8c76ecdaba75552c499",
+      "bytes": 2599
+    },
+    {
+      "path": "docs/26-sprint-5.0.3-exercise-quick-view-manual-block-ux.md",
+      "sha256": "e8147bfc5d0884b9f6ba792d69fb5618e77708181791301e65c72989f32dfd0c",
+      "bytes": 3418
+    },
+    {
+      "path": "docs/27-sprint-5.0.4-quick-view-action-visibility.md",
+      "sha256": "148749dde2e996a12fe378a7b4da1312b4427061866299f2af82d9b997527b95",
+      "bytes": 1420
+    },
+    {
+      "path": "docs/28-sprint-5.0.5-quick-view-link-recovery-hero-age.md",
+      "sha256": "664149bd4ce272b6c852ee601045118a5989124be6de6a3c66a8ff7da1905090",
+      "bytes": 1711
+    },
+    {
+      "path": "docs/CHANGELOG.md",
+      "sha256": "821cb098f3aabe5747f0458c51b7d69563f226560533b31dee9ab15ba1261eb8",
+      "bytes": 14284
+    },
+    {
+      "path": "docs/DEFERRED-MEDIA-BACKLOG.md",
+      "sha256": "e235d0f5cd03f70978fc4cf4e875951ebd8504f687110597dbd242509405092e",
+      "bytes": 1244
+    },
+    {
+      "path": "docs/Futsal_Exercise_Library_Vision.docx",
+      "sha256": "befc05650e5c32b7fafb98a63389edc9dba9394087be49923558fcedbb4f6c58",
+      "bytes": 42222
+    },
+    {
+      "path": "docs/Futsal_OS_Roadmap_Ideas.docx",
+      "sha256": "17d62b0ad3b82c06038799561d82750c2c8d7c4e4bd7f9b2b7b7c0e1a096d015",
+      "bytes": 41550
+    },
+    {
+      "path": "docs/Sprint-04-Completion-Summary.md",
+      "sha256": "e468196857b40c235feed8d9050faa07e8a5903696614404b8d5b1d7633cb058",
+      "bytes": 2663
+    },
+    {
+      "path": "docs/Sprint-05.0-Training-Builder-Foundation-Brief.md",
+      "sha256": "48a38c10b636441223b17284f7c97a5f97b7907446f56021dfd56855d5efa6d2",
+      "bytes": 2531
+    },
+    {
+      "path": "docs/releases/Sprint-03.5.3-Exercise-Media-Image-Host-Fix.md",
+      "sha256": "68590a3cb59324d2ae71ea0a64e26ee13f664085d4c9883c8c81b515e86c3d06",
+      "bytes": 727
+    },
+    {
+      "path": "docs/releases/Sprint-03.5.4-Exercise-Cover-Library-Card.md",
+      "sha256": "1aab535fca5b17c115cd7c104824ec4e5fa2bee3d5d54f92640829790f9a0ac6",
+      "bytes": 844
+    },
+    {
+      "path": "docs/releases/Sprint-03.5.5-Exercise-UI-Localization-Polish.md",
+      "sha256": "2066d874b07ffa5dde012998bf601ea1dcf9e434f92a3a361cc685efc09babd9",
+      "bytes": 1098
+    },
+    {
+      "path": "docs/releases/Sprint-03.6.0-Exercise-Media-Management.md",
+      "sha256": "f9ffce37382771b31678eb1a27d06e3246b6e236b3e9349e93d67c1990bf777d",
+      "bytes": 1645
+    },
+    {
+      "path": "docs/releases/Sprint-03.6.1-Exercise-Media-Preview-UX.md",
+      "sha256": "653cdfd906dff168ece0d415d59370146ba6e7bd3ed58f2a769ed0a67b4a42f1",
+      "bytes": 1141
+    },
+    {
+      "path": "docs/releases/Sprint-03.6.2-Unsaved-Changes-Protection.md",
+      "sha256": "25fb3d7df6bb3fce0035512ea6c797977e78e6f6a3809fbc020ecd9ec2cab2f3",
+      "bytes": 1511
+    },
+    {
+      "path": "docs/releases/Sprint-04.0-Exercise-Import-Foundation.md",
+      "sha256": "c3c3e011a0242375fd41926f72cc837b96025869e25c56ba0f461c396c382d46",
+      "bytes": 1302
+    },
+    {
+      "path": "docs/releases/Sprint-04.0.1-Exercise-Import-QA-Fixes.md",
+      "sha256": "39adffa898109c5b6154ff2872089bf9c0db714533882e1df1aa89f964e0182d",
+      "bytes": 795
+    },
+    {
+      "path": "docs/releases/Sprint-04.0.2-Exercise-Import-Summary-Filters.md",
+      "sha256": "54c4b0740dac03b000c92a165734c244efca6f8a2ae839e1e7d8d12f61e70480",
+      "bytes": 2394
+    },
+    {
+      "path": "docs/releases/Sprint-04.0.3-Import-Metadata-and-Title-Cleanup.md",
+      "sha256": "1261571c171ff6516ea64675165f18b08f66c93665b1df83a82e45387e9f7714",
+      "bytes": 1415
+    },
+    {
+      "path": "docs/releases/Sprint-04.0.4-Coach-Workspace-Navigation.md",
+      "sha256": "966e4449870c75de3a072ee0547301636b23c901625e10df34f2dcdce2ac3cec",
+      "bytes": 783
+    },
+    {
+      "path": "docs/releases/Sprint-04.1-Warm-up-Content-Pack-v1.md",
+      "sha256": "8421b1be9baa314a8c326872b96dc5792a2cdb610b2af86cc3a25059d92b4781",
+      "bytes": 864
+    },
+    {
+      "path": "docs/releases/Sprint-04.2-Technical-Content-Pack-v1.md",
+      "sha256": "8eb556db271a6052a467db5b292e0766c7033e813bcb9e1f79f7951d971b9215",
+      "bytes": 776
+    },
+    {
+      "path": "docs/releases/Sprint-04.2.1-Technical-Visual-Pack-v1.md",
+      "sha256": "3f3e7c967aa1aa6990f0a943e4f19b5144598d190bb750fed2bd70d0faddae9b",
+      "bytes": 626
+    },
+    {
+      "path": "docs/releases/Sprint-04.2.2-Exercise-Media-Batch-Import.md",
+      "sha256": "710f9c5ca529ba8a94c36ee1e647cde96f20caa8d1ba7ae6c61b0328548a46c4",
+      "bytes": 1564
+    },
+    {
+      "path": "docs/releases/Sprint-04.2.3-Technical-Diagram-Pack-v1.md",
+      "sha256": "d20c30588c268c793e4642ca355941bb010a015f4399e6b6aece6c6a2911e675",
+      "bytes": 499
+    },
+    {
+      "path": "docs/releases/Sprint-04.3-Passing-Content-Pack-v1.md",
+      "sha256": "5ab8b6881ee9a6c33963bd05d996178f6512b7c35b8dc23ad376ac4a6d6a0efd",
+      "bytes": 527
+    },
+    {
+      "path": "docs/releases/Sprint-04.3.1-Passing-Visual-Pack-v1.md",
+      "sha256": "06cf02de177bea47a97cfdda6cbae88294b776c4f4aa55a46068e84dee59b321",
+      "bytes": 182
+    },
+    {
+      "path": "docs/releases/Sprint-04.4-Defending-Content-Pack-v1.md",
+      "sha256": "303705d9a0ecd6fa43796a6d842b508c8fbdc316122b6eac52f76041da6ebe16",
+      "bytes": 919
+    },
+    {
+      "path": "docs/releases/Sprint-04.5-Finishing-Content-Pack-v1.md",
+      "sha256": "18f8503f096539810269e6d0fab666ebad9571b556e81bbc1d1ab077f7c57164",
+      "bytes": 404
+    },
+    {
+      "path": "docs/releases/Sprint-04.6-Attacking-Combinations-Content-Pack-v1.md",
+      "sha256": "8f9d9dff2c6eb90d1455394d16f50bc847e73ffb92044372bfe11264d485c866",
+      "bytes": 778
+    },
+    {
+      "path": "docs/releases/Sprint-04.8-Set-Pieces-Content-Pack-v1.md",
+      "sha256": "6e3575ef0658acaa822dc1a4e36ab14af925c87022af7cd62619d572f355f88d",
+      "bytes": 574
+    },
+    {
+      "path": "docs/releases/Sprint-04.8.1-Set-Pieces-Diagram-Pack-v1.md",
+      "sha256": "fdbfd9a5e1ec6724c567d3a5f700816fea6c0402d222d1a8b04bd02f5a552412",
+      "bytes": 416
+    },
+    {
+      "path": "docs/releases/Sprint-04.9-Tactical-Systems-Content-Pack-v1.md",
+      "sha256": "7b2e2fccc14f2dba86ed8e282f15a3e7f939da38ed175708a49f9ce2d940092d",
+      "bytes": 653
+    },
+    {
+      "path": "docs/releases/Sprint-05.0-Training-Builder-Foundation.md",
+      "sha256": "7f15510d7b32526685ba5a161e5be67afaf6c36b8c6354f7ad6dab5ba718dca7",
+      "bytes": 2237
+    },
+    {
+      "path": "docs/releases/Sprint-05.0.3-Exercise-Quick-View-and-Manual-Block-UX.md",
+      "sha256": "268fe19fda6fe98a2d85b5ed8c41dd341f8a3af47f6a00c13ab0e488291ed6cf",
+      "bytes": 1048
+    },
+    {
+      "path": "docs/releases/Sprint-05.0.4-Quick-View-Action-Visibility-Fix.md",
+      "sha256": "d5672f4d06505185f71516b167092bf697e58f112d89382d754ad73f2b9d00f6",
+      "bytes": 439
+    },
+    {
+      "path": "docs/releases/Sprint-05.0.5-Quick-View-Link-Recovery-and-Hero-Age-Fix.md",
+      "sha256": "769f3f28de210ea0adc2a780936d0245aa9d4c206eda4b9951a4bc49cc77d336",
+      "bytes": 272
+    },
+    {
+      "path": "eslint.config.mjs",
+      "sha256": "870f1adccecf3051cbcd9fd307cef51d7633cf510979c181a81f4b1797273493",
+      "bytes": 465
+    },
+    {
+      "path": "lib/supabase.ts",
+      "sha256": "684a4effa661e06c7a98918a1dae7186035be8d1a8cf33b68a957e903fa2357e",
+      "bytes": 472
+    },
+    {
+      "path": "media-manifest.csv",
+      "sha256": "72c7ace54c86067372163e8326bf701948ef727cc3eba022dba99b469ad28b6d",
+      "bytes": 2261
+    },
+    {
+      "path": "media-manifest.json",
+      "sha256": "b19a25f26b79b0bd4339e323ad5cafc48a2e1a45c84b38f5dc236eede5426582",
+      "bytes": 10593
+    },
+    {
+      "path": "next-env.d.ts",
+      "sha256": "7ad303e40d4fddf44f156129e397511953a71481c5cfd86b1862649aaaf240cc",
+      "bytes": 251
+    },
+    {
+      "path": "next.config.ts",
+      "sha256": "e8647bf4e3cd7c0b45c35d146c59af02979d129bd00dad31044a467ccdd3864b",
+      "bytes": 1211
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "7c506eea8acb0a9acacd4ca349d7f5f235163676c933f34be10924a5344ccf3c",
+      "bytes": 252697
+    },
+    {
+      "path": "package.json",
+      "sha256": "62d0a4e15249788bf5f441c4252cb50d56b2b97254b73b8f152b107c922787b6",
+      "bytes": 714
+    },
+    {
+      "path": "postcss.config.mjs",
+      "sha256": "dfac7ac2d86d326a0e5adb024e7943c181393ed17a5fcb8f0315b24c7da6ddde",
+      "bytes": 94
+    },
+    {
+      "path": "preview/Set-Pieces-Diagram-Pack-v1-Contact-Sheet.jpg",
+      "sha256": "3a27760c596c0c12783c96d0038856bf9a4e6f4b847675a73f566a1b85379ee7",
+      "bytes": 311825
+    },
+    {
+      "path": "preview/Technical-Diagram-Pack-v1-Contact-Sheet.jpg",
+      "sha256": "4f3d69d905d844fa0281115f260869113bf8814137f288d6792606548df233c2",
+      "bytes": 301396
+    },
+    {
+      "path": "public/file.svg",
+      "sha256": "2b67812c325c199a02536cdbeea0c593a72f707d323b72ee3e08dbab06753bd4",
+      "bytes": 391
+    },
+    {
+      "path": "public/globe.svg",
+      "sha256": "b614b9bf183925957661ac851498fe1d8029fd43a62fbfed86f9e2624a57e7cf",
+      "bytes": 1035
+    },
+    {
+      "path": "public/icons/apple-touch-icon.png",
+      "sha256": "9dedd2b7c8e35b89abd02ce8b0acb3f8e0006d276fe147ca544061b667a27a90",
+      "bytes": 34054
+    },
+    {
+      "path": "public/icons/favicon-16.png",
+      "sha256": "bda25b8339052580f9f6357e99f902144f0a4663c6ee9b11b703bc26637cd046",
+      "bytes": 835
+    },
+    {
+      "path": "public/icons/favicon-32.png",
+      "sha256": "9bbc24d25984758208c229372190ada70444df2c9d24d0e7ad560311e74f70ff",
+      "bytes": 2421
+    },
+    {
+      "path": "public/icons/icon-192.png",
+      "sha256": "d4a09d3172e9cc082614acdb9f8a6337f31a9834b7e231ce8593034c0172d523",
+      "bytes": 37857
+    },
+    {
+      "path": "public/icons/icon-512.png",
+      "sha256": "f170375b39f27c5995c0684c5f8eee24528482b5b8da38d1faf1fe56a8d4aaa6",
+      "bytes": 227892
+    },
+    {
+      "path": "public/icons/icon-maskable-192.png",
+      "sha256": "7602695cadab03b628c99a457e707cc746639d01ad7d81999c283a29f3ade5fd",
+      "bytes": 27053
+    },
+    {
+      "path": "public/icons/icon-maskable-512.png",
+      "sha256": "8fce686cf76a5e92df4af80d4641ca156f98235eb33838a9e8d29a2adda40181",
+      "bytes": 161575
+    },
+    {
+      "path": "public/icons/notification-icon-64.png",
+      "sha256": "bb3a5133b2d5b2687f69d31c3ea12f94e9a142ef2f2112ba05eb07d1a5af83ac",
+      "bytes": 6846
+    },
+    {
+      "path": "public/images/achievements-team.jpg",
+      "sha256": "3989b5715322d677868931ce7e6df761df6e2595c4e977d4c9963936c076e7f2",
+      "bytes": 3427988
+    },
+    {
+      "path": "public/images/gallery-1.jpg",
+      "sha256": "248ac302b2f0db49cdce373efebad9902bcbc720be804bee7817c50c6e4ce36e",
+      "bytes": 297872
+    },
+    {
+      "path": "public/images/gallery-2.jpg",
+      "sha256": "e23326fef6a3d17fb2605b2cbe85806e6c6e6afcd77d36ecf4a87154d8bd3888",
+      "bytes": 6228735
+    },
+    {
+      "path": "public/images/gallery-3.jpg",
+      "sha256": "c07f274b265ef201424ecc1349f13a0b498187712fff4203a1f98fe058c72cc4",
+      "bytes": 248449
+    },
+    {
+      "path": "public/images/gallery-4.jpg",
+      "sha256": "b271abd35813935b899011e62b8d085b04fa818e107ef1084e2fa5cde56d4ff2",
+      "bytes": 178974
+    },
+    {
+      "path": "public/images/gallery-5.jpg",
+      "sha256": "be4cbf81bf3610e774b52bbce4961ee3882a6d94b853ad55c31908060f9c450a",
+      "bytes": 225483
+    },
+    {
+      "path": "public/images/gallery-6.jpg",
+      "sha256": "15667138557d2422d7d25a6f487e9c06330b9edc927ffb28a83a811a7a9bd634",
+      "bytes": 217113
+    },
+    {
+      "path": "public/images/gallery-7.jpg",
+      "sha256": "39328ebdbee06bf3d8732cc37a9cd9bc3141072a7a03cd8ea45a50c6b55f6538",
+      "bytes": 6489882
+    },
+    {
+      "path": "public/images/gallery-8.jpg",
+      "sha256": "fde273656b170e42a8c816c3218d7d49795fe652a247ab128b8056e7ca678cb5",
+      "bytes": 241081
+    },
+    {
+      "path": "public/images/hero-team.jpg",
+      "sha256": "71d4041e8bf2564ec27c2e27d329a26deab5a882a818a2d757b9cd83557369be",
+      "bytes": 6768880
+    },
+    {
+      "path": "public/images/olimp-logo.png",
+      "sha256": "4f718939b67fab99695a2c725beea017bd9953c93dad49c1205a738b6c41ede5",
+      "bytes": 91940
+    },
+    {
+      "path": "public/next.svg",
+      "sha256": "55995dfad6ecb4945a1e856ddca03c5e16aa5bf13fd21b4df6a74ae79357bcfc",
+      "bytes": 1375
+    },
+    {
+      "path": "public/sw.js",
+      "sha256": "264febdbe15c128c353a8815f29b4effd9cd45ebbc0c84162512e592ff314472",
+      "bytes": 48213
+    },
+    {
+      "path": "public/vercel.svg",
+      "sha256": "f081337b2fee635b455b63275406a3e7f39d6a014e25ad90dab5a67e62a12ac4",
+      "bytes": 128
+    },
+    {
+      "path": "public/window.svg",
+      "sha256": "644768c4aaeb4767bce293344eeb0c125fb804a94d801440424072202d85e3a1",
+      "bytes": 385
+    },
+    {
+      "path": "qa/Exercise-Media-Batch-Import-QA-Checklist.md",
+      "sha256": "a7956f71d7bc2758597b0cec327af1fb84991c49c6bf8a6283bbe651eeb4c76b",
+      "bytes": 3351
+    },
+    {
+      "path": "qa/Sprint-05.0-Training-Builder-QA-Checklist.md",
+      "sha256": "e09a34481e7c621966258252e1d847ca9839bad1b32f72cf5254bf8c95b206dd",
+      "bytes": 5630
+    },
+    {
+      "path": "qa/Sprint-05.0-Validation-Report.md",
+      "sha256": "c9d0d09d226919eb9b4672254d3f11e60f29035c23ea2610cc37789f68d16101",
+      "bytes": 2271
+    },
+    {
+      "path": "qa/Sprint-05.0.1-Training-Builder-QA-Checklist.md",
+      "sha256": "153c705ab2068c722e1f388ea504110605e28cd405443636d1a3dbbc0f47d6f1",
+      "bytes": 2677
+    },
+    {
+      "path": "qa/Sprint-05.0.1-Validation-Report.md",
+      "sha256": "5db69569b12dd5b4cdd259c3311161afd3e13aea4add8aa2320c729cbc6b3791",
+      "bytes": 1713
+    },
+    {
+      "path": "qa/Sprint-05.0.2-Training-Builder-QA-Checklist.md",
+      "sha256": "cf2a938701ebbc9b67db7ed00f018be1d5417b9049ea90545b811f5813846d96",
+      "bytes": 3013
+    },
+    {
+      "path": "qa/Sprint-05.0.2-Validation-Report.md",
+      "sha256": "e0cc29141653cf959b8059b88aa34f15ad7572e098a98f37975fd4395cec17ff",
+      "bytes": 879
+    },
+    {
+      "path": "qa/Sprint-05.0.3-Training-Builder-QA-Checklist.md",
+      "sha256": "e2ec1c294924b249e623ab43dd7c1795608c9fe796ebde5855a1a993d2e45251",
+      "bytes": 4203
+    },
+    {
+      "path": "qa/Sprint-05.0.3-Validation-Report.md",
+      "sha256": "3eb7b1fcc2237ff8f1bf72daa42e391176e61f7bf6d1a67dffd23120f7a67dd0",
+      "bytes": 1259
+    },
+    {
+      "path": "qa/Sprint-05.0.4-Training-Builder-QA-Checklist.md",
+      "sha256": "6458417d867930f08b41c12b2a6ad0751f0324f52c19f2f2eb56703985dbab9b",
+      "bytes": 1290
+    },
+    {
+      "path": "qa/Sprint-05.0.4-Validation-Report.md",
+      "sha256": "09c46a15733059f8449caf42b834733bf7e216b0fe598e34eec8e8b2a40b154d",
+      "bytes": 232
+    },
+    {
+      "path": "qa/Sprint-05.0.5-Training-Builder-QA-Checklist.md",
+      "sha256": "af939bf02151ea3d578251574889e8d3a216404a873a6b51b210c5809d830276",
+      "bytes": 1356
+    },
+    {
+      "path": "qa/Sprint-05.0.5-Validation-Report.md",
+      "sha256": "ffeabe2947da47f6ea80925ec029fa4019fb458d81abef029dd4315785f9c523",
+      "bytes": 850
+    },
+    {
+      "path": "qa/Technical-Content-Pack-v1-QA-Checklist.md",
+      "sha256": "22976e4d6b37c3ec9045bc92675d53d9643fb3a0b9ac65e193c07e597290c951",
+      "bytes": 2576
+    },
+    {
+      "path": "qa/Technical-Content-Pack-v1-Validation-Report.md",
+      "sha256": "196d2e4752e345161d499563ec4cfa731a8baeadb7a144b3f2fb0a8e5e3c600b",
+      "bytes": 1554
+    },
+    {
+      "path": "qa/Technical-Diagram-Pack-v1-QA-Checklist.md",
+      "sha256": "22bdc7d469cfae322f620dace5ed9ed4e05343f5793bfc8484f1628dc1d2f295",
+      "bytes": 1765
+    },
+    {
+      "path": "qa/Technical-Visual-Pack-v1-QA-Checklist.md",
+      "sha256": "a28a4b7504994a2efb5d0b38612857e0d3b6143d372ac32ddac9bc4773e27752",
+      "bytes": 1826
+    },
+    {
+      "path": "qa/Warm-up-Content-Pack-v1-QA-Checklist.md",
+      "sha256": "b6661492f7ee3043c4db46904c21fc00c39601acdf75eb4ef9bbe0dbec5a75f1",
+      "bytes": 2602
+    },
+    {
+      "path": "qa/Warm-up-Content-Pack-v1-Validation-Report.md",
+      "sha256": "336285680237745c668d76211e99b949138635cf73b9f690b2bf29dccd4936ad",
+      "bytes": 1139
+    },
+    {
+      "path": "sql/2026-08-02-cleanup-import-title-metadata.sql",
+      "sha256": "4ea3deba9d17c2d5a607408d111815f05703348c423d5b7ca24663ee0c3d06d8",
+      "bytes": 440
+    },
+    {
+      "path": "sql/2026-08-02-training-builder-foundation.sql",
+      "sha256": "092f35b6f32825968d1d7007d6bfe3739759d2b2a77e34029eb3fcdf95147c72",
+      "bytes": 5855
+    },
+    {
+      "path": "sql/2026-08-02-training-builder-manual-blocks-fix.sql",
+      "sha256": "87c1136139e85eff03020c1eedef26069fa80d53c90deacf7f0aa6d514b4f476",
+      "bytes": 4372
+    },
+    {
+      "path": "sql/2026-08-03-training-builder-duration-and-layout-qa-fix.sql",
+      "sha256": "98d637670bba300f298b779d91fd9c6fd361edfb573e71c44635e9b6529d4fee",
+      "bytes": 5203
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "6e90ea40f54f7034e64ea193e3cbbc52b7ce221db57041c2fac468cae19675d2",
+      "bytes": 735
+    }
+  ]
+}

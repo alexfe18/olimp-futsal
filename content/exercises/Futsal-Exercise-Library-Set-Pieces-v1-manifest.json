@@ -1,0 +1,19 @@
+{
+  "pack_id": "set-pieces-v1",
+  "title": "Set Pieces Content Pack v1",
+  "version": "1.0",
+  "language": "uk",
+  "exercise_count": 10,
+  "code_range": "SET-001–SET-010",
+  "category": "set_pieces",
+  "status": "active",
+  "library_tier": "core",
+  "source": "Futsal Exercise Library — Set Pieces Content Pack v1.0",
+  "visual_assets": "deferred until functional roadmap is completed",
+  "coverage": {
+    "kick_ins": 3,
+    "corners": 3,
+    "free_kicks": 3,
+    "penalties": 1
+  }
+}

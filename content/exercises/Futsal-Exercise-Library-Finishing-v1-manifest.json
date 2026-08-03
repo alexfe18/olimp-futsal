@@ -1,0 +1,13 @@
+{
+  "pack_id": "finishing-v1",
+  "title": "Finishing Content Pack v1",
+  "version": "1.0",
+  "language": "uk",
+  "exercise_count": 10,
+  "code_range": "FIN-001–FIN-010",
+  "category": "finishing",
+  "status": "active",
+  "library_tier": "core",
+  "source": "Futsal Exercise Library — Finishing Content Pack v1.0",
+  "visual_assets": "deferred until functional roadmap is completed"
+}

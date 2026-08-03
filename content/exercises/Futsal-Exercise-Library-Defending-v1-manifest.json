@@ -1,0 +1,18 @@
+{
+  "pack_id": "defending-v1",
+  "title": "Defending Content Pack v1",
+  "version": "1.0",
+  "language": "uk",
+  "exercise_count": 10,
+  "code_range": "DEF-001–DEF-010",
+  "category": "defending",
+  "status": "active",
+  "library_tier": "core",
+  "source": "Futsal Exercise Library — Defending Content Pack v1.0",
+  "visual_assets": "deferred",
+  "files": {
+    "json": "Futsal-Exercise-Library-Defending-v1.json",
+    "csv": "Futsal-Exercise-Library-Defending-v1.csv",
+    "catalog": "Defending-Content-Pack-v1-Catalog.md"
+  }
+}

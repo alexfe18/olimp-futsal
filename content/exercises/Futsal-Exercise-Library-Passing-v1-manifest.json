@@ -1,0 +1,17 @@
+{
+  "pack_id": "passing-v1",
+  "title": "Passing Content Pack v1",
+  "version": "1.0",
+  "language": "uk",
+  "exercise_count": 15,
+  "code_range": "PASS-001–PASS-015",
+  "category": "passing",
+  "status": "active",
+  "library_tier": "core",
+  "source": "Futsal Exercise Library — Passing Content Pack v1.0",
+  "files": {
+    "json": "Futsal-Exercise-Library-Passing-v1.json",
+    "csv": "Futsal-Exercise-Library-Passing-v1.csv",
+    "catalog": "Passing-Content-Pack-v1-Catalog.md"
+  }
+}

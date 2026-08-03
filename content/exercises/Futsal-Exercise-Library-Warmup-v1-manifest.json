@@ -1,0 +1,63 @@
+{
+  "package": "Sprint-04.1-Warm-up-Content-Pack-v1",
+  "version": "1.0.0",
+  "date": "2026-08-02",
+  "language": "uk",
+  "exercise_count": 15,
+  "codes": [
+    "WU-001",
+    "WU-002",
+    "WU-003",
+    "WU-004",
+    "WU-005",
+    "WU-006",
+    "WU-007",
+    "WU-008",
+    "WU-009",
+    "WU-010",
+    "WU-011",
+    "WU-012",
+    "WU-013",
+    "WU-014",
+    "WU-015"
+  ],
+  "classification": {
+    "category": {
+      "warm_up": 15
+    },
+    "difficulty": {
+      "easy": 3,
+      "medium": 7,
+      "hard": 4,
+      "advanced": 1
+    },
+    "exercise_type": {
+      "technical": 5,
+      "complex": 3,
+      "tactical": 3,
+      "physical": 1,
+      "goalkeeper": 1,
+      "game": 2
+    },
+    "library_tier": {
+      "core": 15
+    },
+    "status": {
+      "active": 15
+    }
+  },
+  "files": {
+    "content/exercises/Futsal-Exercise-Library-Warmup-v1.csv": {
+      "bytes": 42608,
+      "sha256": "0591948fd68cd97cba042728f39f77e3a120c45b23a15a2094e7982a46cd2171"
+    },
+    "content/exercises/Futsal-Exercise-Library-Warmup-v1.json": {
+      "bytes": 53512,
+      "sha256": "746996c7e677fa4b1406dc24369befbee58b695ec9f43feacaeb57f80cd9f38e"
+    },
+    "content/exercises/Warm-up-Content-Pack-v1-Catalog.md": {
+      "bytes": 3129,
+      "sha256": "e660619c349abfe6651be6291df6984f22de5786fd19113cc4df8c2654c66302"
+    }
+  }
+}

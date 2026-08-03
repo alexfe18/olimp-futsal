@@ -1,0 +1,72 @@
+{
+  "package": "Sprint-04.2-Technical-Content-Pack-v1",
+  "version": "1.0.0",
+  "date": "2026-08-02",
+  "language": "uk",
+  "exercise_count": 15,
+  "codes": [
+    "TECH-001",
+    "TECH-002",
+    "TECH-003",
+    "TECH-004",
+    "TECH-005",
+    "TECH-006",
+    "TECH-007",
+    "TECH-008",
+    "TECH-009",
+    "TECH-010",
+    "TECH-011",
+    "TECH-012",
+    "TECH-013",
+    "TECH-014",
+    "TECH-015"
+  ],
+  "classification": {
+    "category": {
+      "technical": 15
+    },
+    "difficulty": {
+      "easy": 3,
+      "medium": 6,
+      "hard": 5,
+      "advanced": 1
+    },
+    "exercise_type": {
+      "technical": 11,
+      "complex": 3,
+      "game": 1
+    },
+    "player_format": {
+      "individual": 3,
+      "without_opposition": 7,
+      "1v1": 2,
+      "2v1": 1,
+      "4v2": 1,
+      "3v3": 1
+    },
+    "library_tier": {
+      "core": 15
+    },
+    "status": {
+      "active": 15
+    }
+  },
+  "files": {
+    "content/exercises/Futsal-Exercise-Library-Technical-v1.csv": {
+      "bytes": 43497,
+      "sha256": "a21547fed02ed355ded9d3bb822625e4b660de4aaeaeaf69adb3da96cce3c472"
+    },
+    "content/exercises/Futsal-Exercise-Library-Technical-v1.json": {
+      "bytes": 54247,
+      "sha256": "3034ac8608dafac7f983d1d0c665cf650c73eccf11ab3b6128a2b4c9c433d8c6"
+    },
+    "content/exercises/Technical-Content-Pack-v1-Catalog.md": {
+      "bytes": 3584,
+      "sha256": "f2077134dd9ac8a70b70c15be76674f86e1456637bc3b3dc61810c1bf4e5977b"
+    },
+    "content/visuals/Technical-Visual-Pack-v1-Brief.md": {
+      "bytes": 3974,
+      "sha256": "b33441a7fc7e25918fe7874fc1323ff58e66f07ec01ef046592acb5f92ecc359"
+    }
+  }
+}

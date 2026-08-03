@@ -1,0 +1,32 @@
+{
+  "pack_id": "tactical-systems-v1",
+  "title": "Tactical Systems Content Pack v1",
+  "version": "1.0",
+  "language": "uk",
+  "exercise_count": 10,
+  "code_range": "TACT-001–TACT-010",
+  "category": "tactical",
+  "status": "active",
+  "source": "Futsal Exercise Library — Tactical Systems Content Pack v1.0",
+  "visual_assets": "deferred until functional roadmap is completed",
+  "coverage": {
+    "attacking_systems": [
+      "4-0",
+      "3-1",
+      "2-2",
+      "4-0 to 3-1"
+    ],
+    "defensive_systems": [
+      "1-2-1 high press",
+      "2-2 mid block",
+      "1-2-1 low block"
+    ],
+    "special_situations": [
+      "5v4 power play",
+      "4v5 penalty kill"
+    ],
+    "integrated_game": [
+      "system switching"
+    ]
+  }
+}
