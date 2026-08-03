@@ -5,10 +5,13 @@ import type { ExerciseRow } from "@/app/admin/coach/exercises/components/types";
 import type {
   ExerciseSummary,
   TrainingPlanBlockDraft,
+  TrainingPlanBlockRow,
   TrainingPlanDraft,
   TrainingPlanRow,
+  TrainingTemplateBlockRow,
+  TrainingTemplateRow,
+  TrainingTemplateStatus,
 } from "./types";
-
 
 const supportedBlockTypes = new Set([
   "warm_up",
@@ -60,6 +63,47 @@ function normalizeExerciseRelation(
   }
 
   return relation;
+}
+
+function mapBlocksToDraft(
+  rows: Array<TrainingPlanBlockRow | TrainingTemplateBlockRow>,
+  clone = false,
+) {
+  return [...rows]
+    .sort((first, second) => first.sort_order - second.sort_order)
+    .map<TrainingPlanBlockDraft>((block, index) => {
+      const exercise = normalizeExerciseRelation(block.exercises);
+
+      return {
+        clientId: clone ? crypto.randomUUID() : block.id,
+        persistedId: clone ? null : block.id,
+        exerciseId: block.exercise_id ?? exercise?.id ?? null,
+        code: exercise?.code ?? null,
+        title: exercise?.title ?? block.title,
+        description: block.description,
+        category: exercise?.category ?? block.block_type ?? "custom",
+        durationMinutes: Number(block.duration_minutes) || 10,
+        notes: block.notes ?? "",
+        sortOrder: index,
+        exercise,
+      };
+    });
+}
+
+function serializeBlocks(blocks: TrainingPlanBlockDraft[]) {
+  return blocks.map((block, index) => ({
+    exercise_id: block.exerciseId ?? block.exercise?.id ?? null,
+    title: block.title.trim(),
+    description:
+      block.description?.trim() ||
+      (block.exercise?.title
+        ? `Вправа з бібліотеки: ${block.exercise.title}`
+        : null),
+    duration_minutes: Number(block.durationMinutes),
+    block_type: normalizeBlockType(block.category),
+    sort_order: index,
+    notes: block.notes.trim() || null,
+  }));
 }
 
 export function createManualBlock(sortOrder: number): TrainingPlanBlockDraft {
@@ -211,26 +255,6 @@ export async function loadTrainingPlan(planId: string) {
   }
 
   const row = data as unknown as TrainingPlanRow;
-  const blocks = [...(row.training_plan_blocks ?? [])]
-    .sort((first, second) => first.sort_order - second.sort_order)
-    .map<TrainingPlanBlockDraft>((block, index) => {
-      const exercise = normalizeExerciseRelation(block.exercises);
-
-      return {
-        clientId: block.id,
-        persistedId: block.id,
-        exerciseId: block.exercise_id ?? exercise?.id ?? null,
-        code: exercise?.code ?? null,
-        title: exercise?.title ?? block.title,
-        description: block.description,
-        category: exercise?.category ?? block.block_type ?? "other",
-        durationMinutes: Number(block.duration_minutes) || 10,
-        notes: block.notes ?? "",
-        sortOrder: index,
-        exercise,
-      };
-    });
-
   const draft: TrainingPlanDraft = {
     id: row.id,
     title: row.title,
@@ -241,7 +265,7 @@ export async function loadTrainingPlan(planId: string) {
     notes: row.notes ?? "",
     intensity: row.intensity,
     status: row.status,
-    blocks,
+    blocks: mapBlocksToDraft(row.training_plan_blocks ?? []),
   };
 
   return {
@@ -251,21 +275,99 @@ export async function loadTrainingPlan(planId: string) {
   };
 }
 
-export async function saveTrainingPlanDraft(draft: TrainingPlanDraft) {
-  const blocks = draft.blocks.map((block, index) => ({
-    exercise_id: block.exerciseId ?? block.exercise?.id ?? null,
-    title: block.title.trim(),
-    description:
-      block.description?.trim() ||
-      (block.exercise?.title
-        ? `Вправа з бібліотеки: ${block.exercise.title}`
-        : null),
-    duration_minutes: Number(block.durationMinutes),
-    block_type: normalizeBlockType(block.category),
-    sort_order: index,
-    notes: block.notes.trim() || null,
-  }));
+export async function loadTrainingTemplate(templateId: string) {
+  const { data, error } = await supabase
+    .from("training_templates")
+    .select(
+      `
+        id,
+        title,
+        team_name,
+        age_group,
+        objective,
+        planned_duration,
+        intensity,
+        status,
+        notes,
+        source_plan_id,
+        created_at,
+        updated_at,
+        training_template_blocks (
+          id,
+          exercise_id,
+          title,
+          description,
+          duration_minutes,
+          block_type,
+          sort_order,
+          notes,
+          exercises (
+            ${exerciseSelect}
+          )
+        )
+      `,
+    )
+    .eq("id", templateId)
+    .order("sort_order", {
+      referencedTable: "training_template_blocks",
+      ascending: true,
+    })
+    .single();
 
+  if (error || !data) {
+    throw new Error(error?.message ?? "Шаблон тренування не знайдено.");
+  }
+
+  const row = data as unknown as TrainingTemplateRow;
+  const draft: TrainingPlanDraft = {
+    id: row.id,
+    title: row.title,
+    sessionDate: "",
+    teamName: row.team_name ?? "Олімп Футзал",
+    ageGroup: row.age_group ?? "",
+    objective: row.objective ?? "",
+    notes: row.notes ?? "",
+    intensity: row.intensity,
+    status: "draft",
+    blocks: mapBlocksToDraft(row.training_template_blocks ?? []),
+  };
+
+  return {
+    draft,
+    templateStatus: row.status,
+    sourcePlanId: row.source_plan_id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function createPlanDraftFromTemplate(templateId: string) {
+  const loaded = await loadTrainingTemplate(templateId);
+
+  if (loaded.templateStatus !== "active") {
+    throw new Error(
+      "Шаблон знаходиться в архіві. Відновіть його перед створенням нового плану.",
+    );
+  }
+
+  return {
+    draft: {
+      ...loaded.draft,
+      id: null,
+      sessionDate: "",
+      status: "draft" as const,
+      blocks: loaded.draft.blocks.map((block, index) => ({
+        ...block,
+        clientId: crypto.randomUUID(),
+        persistedId: null,
+        sortOrder: index,
+      })),
+    },
+    templateTitle: loaded.draft.title,
+  };
+}
+
+export async function saveTrainingPlanDraft(draft: TrainingPlanDraft) {
   const { data, error } = await supabase.rpc("save_training_plan_draft", {
     p_plan_id: draft.id,
     p_title: draft.title.trim(),
@@ -276,7 +378,7 @@ export async function saveTrainingPlanDraft(draft: TrainingPlanDraft) {
     p_notes: draft.notes.trim() || null,
     p_intensity: draft.intensity,
     p_status: draft.status,
-    p_blocks: blocks,
+    p_blocks: serializeBlocks(draft.blocks),
   });
 
   if (error) {
@@ -288,4 +390,77 @@ export async function saveTrainingPlanDraft(draft: TrainingPlanDraft) {
   }
 
   return data;
+}
+
+export async function saveTrainingTemplateDraft(
+  draft: TrainingPlanDraft,
+  templateStatus: TrainingTemplateStatus,
+  sourcePlanId: string | null = null,
+) {
+  const { data, error } = await supabase.rpc("save_training_template_draft", {
+    p_template_id: draft.id,
+    p_title: draft.title.trim(),
+    p_team_name: draft.teamName.trim() || null,
+    p_age_group: draft.ageGroup || null,
+    p_objective: draft.objective.trim() || null,
+    p_notes: draft.notes.trim() || null,
+    p_intensity: draft.intensity,
+    p_status: templateStatus,
+    p_source_plan_id: sourcePlanId,
+    p_blocks: serializeBlocks(draft.blocks),
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (typeof data !== "string" || !data) {
+    throw new Error("Функція збереження не повернула ID шаблону тренування.");
+  }
+
+  return data;
+}
+
+export async function duplicateTrainingPlan(
+  planId: string,
+  requestedTitle?: string,
+) {
+  const loaded = await loadTrainingPlan(planId);
+  const duplicateDraft: TrainingPlanDraft = {
+    ...loaded.draft,
+    id: null,
+    title: requestedTitle?.trim() || `Копія — ${loaded.draft.title}`,
+    sessionDate: "",
+    status: "draft",
+    blocks: loaded.draft.blocks.map((block, index) => ({
+      ...block,
+      clientId: crypto.randomUUID(),
+      persistedId: null,
+      sortOrder: index,
+    })),
+  };
+
+  return saveTrainingPlanDraft(duplicateDraft);
+}
+
+export async function createTrainingTemplateFromPlan(
+  planId: string,
+  requestedTitle?: string,
+) {
+  const loaded = await loadTrainingPlan(planId);
+  const templateDraft: TrainingPlanDraft = {
+    ...loaded.draft,
+    id: null,
+    title: requestedTitle?.trim() || `Шаблон — ${loaded.draft.title}`,
+    sessionDate: "",
+    status: "draft",
+    blocks: loaded.draft.blocks.map((block, index) => ({
+      ...block,
+      clientId: crypto.randomUUID(),
+      persistedId: null,
+      sortOrder: index,
+    })),
+  };
+
+  return saveTrainingTemplateDraft(templateDraft, "active", planId);
 }

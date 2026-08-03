@@ -1,7 +1,7 @@
 # Database Functions & Triggers
 
-> Database Automation Documentation  
-> Version: 1.0  
+> Database Automation Documentation
+> Version: 1.0
 > Last updated: July 2026
 
 ---
@@ -320,3 +320,32 @@ Gallery
 ### Міграція
 
 `sql/2026-08-03-training-builder-duration-and-layout-qa-fix.sql`
+
+---
+
+# 7. Training Templates Functions
+
+## save_training_template_draft(...)
+
+### Призначення
+
+Атомарно створює або оновлює шаблон тренування разом з упорядкованими блоками.
+
+### Виконує
+
+- перевіряє title, intensity, template status і JSON blocks;
+- вимагає мінімум один блок;
+- обчислює `planned_duration` до створення parent row;
+- створює або оновлює `training_templates`;
+- замінює `training_template_blocks` в одній транзакції;
+- зберігає optional `source_plan_id`;
+- повертає UUID шаблону.
+
+### Безпека
+
+Функція має `security invoker`. RLS-політики таблиць діють для поточного
+`authenticated` користувача.
+
+### Міграція
+
+`sql/2026-08-03-training-templates-and-plan-duplication.sql`

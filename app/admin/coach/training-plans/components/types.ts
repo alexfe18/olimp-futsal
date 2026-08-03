@@ -11,6 +11,8 @@ export type TrainingPlanIntensity =
   | "high"
   | "recovery";
 
+export type TrainingTemplateStatus = "active" | "archived";
+
 export type ExerciseSummary = {
   id: string;
   code: string | null;
@@ -95,6 +97,54 @@ export type TrainingPlanListRow = {
   created_at: string;
   updated_at: string;
   training_plan_blocks: {
+    id: string;
+    duration_minutes: number;
+    exercise_id: string | null;
+  }[];
+};
+
+export type TrainingTemplateBlockRow = {
+  id: string;
+  exercise_id: string | null;
+  title: string;
+  description: string | null;
+  duration_minutes: number;
+  block_type: string;
+  sort_order: number;
+  notes: string | null;
+  exercises: ExerciseSummary | ExerciseSummary[] | null;
+};
+
+export type TrainingTemplateRow = {
+  id: string;
+  title: string;
+  team_name: string | null;
+  age_group: string | null;
+  objective: string | null;
+  planned_duration: number;
+  intensity: TrainingPlanIntensity;
+  status: TrainingTemplateStatus;
+  notes: string | null;
+  source_plan_id: string | null;
+  created_at: string;
+  updated_at: string;
+  training_template_blocks: TrainingTemplateBlockRow[];
+};
+
+export type TrainingTemplateListRow = {
+  id: string;
+  title: string;
+  team_name: string | null;
+  age_group: string | null;
+  objective: string | null;
+  planned_duration: number;
+  intensity: TrainingPlanIntensity;
+  status: TrainingTemplateStatus;
+  notes: string | null;
+  source_plan_id: string | null;
+  created_at: string;
+  updated_at: string;
+  training_template_blocks: {
     id: string;
     duration_minutes: number;
     exercise_id: string | null;

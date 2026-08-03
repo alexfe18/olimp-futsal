@@ -8,7 +8,7 @@
 
 # 1. Загальна інформація
 
-База даних системи **«Олімп Футзал»** включає **20 основних таблиць**, які забезпечують роботу всіх функціональних модулів системи.
+База даних системи **«Олімп Футзал»** включає **22 основні таблиці**, які забезпечують роботу всіх функціональних модулів системи.
 
 Кожна таблиця має чітке призначення та використовується одним або декількома модулями.
 
@@ -38,6 +38,8 @@
 | exercise_tags               | Exercise Library   |
 | training_plans              | Training Builder   |
 | training_plan_blocks        | Training Builder   |
+| training_templates          | Training Templates |
+| training_template_blocks    | Training Templates |
 
 ---
 
@@ -477,3 +479,46 @@ Training Builder використовує лише вправи зі status `act
 | notes | text nullable | Нотатки до конкретної вправи |
 
 FK `exercise_id` використовує `ON DELETE SET NULL`, тому видалення вправи не видаляє історичний блок плану.
+
+---
+
+# 21. Training Templates
+
+## Призначення
+
+Зберігає повторно використовувані структури тренувальних сесій. Шаблон не має
+дати проведення та копіюється у незалежний `training_plans` під час створення
+окремого плану.
+
+### Основні поля
+
+| Поле | Тип | Призначення |
+| --- | --- | --- |
+| id | uuid | Ідентифікатор шаблону |
+| title | text | Назва шаблону |
+| team_name | text | Команда або склад |
+| age_group | text | Вікова група |
+| objective | text | Головна мета |
+| planned_duration | integer | Сума тривалості блоків |
+| intensity | text | Інтенсивність |
+| status | text | `active` або `archived` |
+| source_plan_id | uuid | План, з якого створено шаблон |
+| created_at | timestamptz | Дата створення |
+| updated_at | timestamptz | Дата останньої зміни |
+
+# 22. Training Template Blocks
+
+## Призначення
+
+Зберігає впорядковані snapshot-блоки шаблону.
+
+### Основні поля
+
+- template_id;
+- exercise_id;
+- title;
+- description;
+- duration_minutes;
+- block_type;
+- sort_order;
+- notes.
