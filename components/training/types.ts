@@ -13,6 +13,7 @@ export type TrainingRecord = {
   title: string;
   startsAt: string;
   location: string;
+  teamName: string | null;
   status: TrainingStatus;
   cancellationReason: string | null;
 };

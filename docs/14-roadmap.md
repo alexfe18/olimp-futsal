@@ -289,3 +289,10 @@ The Olimp Futsal Club Management System follows these principles:
 - Sprint 04.1: Warm-up Content Pack v1 — imported and verified.
 - Sprint 04.2: Technical Content Pack v1 — ready for Import QA.
 - Sprint 04.2.1: Technical Visual Pack v1 — next.
+
+## Coach Workspace delivery status — August 2026
+
+- Sprint 05.0 Training Builder Foundation — completed and deployed.
+- Sprint 05.1 Training Templates & Plan Duplication — completed and deployed.
+- Sprint 05.2 Training Publish Flow — current implementation.
+- Next: Push delivery integration and Session Review.

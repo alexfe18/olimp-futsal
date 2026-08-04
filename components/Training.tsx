@@ -52,6 +52,8 @@ export default function Training({ variant = "section" }: TrainingProps) {
       const savedPlayerId = window.localStorage.getItem(PLAYER_ID_STORAGE_KEY);
 
       if (savedName?.trim()) {
+        // Hydrate player identity from browser-only storage after mount.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setName(savedName);
         setRememberedName(savedName);
       }
@@ -131,7 +133,9 @@ export default function Training({ variant = "section" }: TrainingProps) {
 
       const { data: trainingData, error: trainingError } = await supabase
         .from("trainings")
-        .select("id, title, starts_at, location, status, cancellation_reason")
+        .select(
+          "id, title, starts_at, location, team_name, status, cancellation_reason",
+        )
         .eq("is_active", true)
         .order("starts_at", {
           ascending: true,
@@ -163,6 +167,7 @@ export default function Training({ variant = "section" }: TrainingProps) {
         title: trainingData.title,
         startsAt: trainingData.starts_at,
         location: trainingData.location,
+        teamName: trainingData.team_name,
         status: trainingData.status,
         cancellationReason: trainingData.cancellation_reason,
       };
@@ -287,6 +292,8 @@ export default function Training({ variant = "section" }: TrainingProps) {
 
   useEffect(() => {
     if (!training || (!selectedPlayerId && !name.trim())) {
+      // Reset the controlled RSVP choice when there is no active identity/event.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedStatus(null);
       return;
     }
@@ -372,6 +379,8 @@ export default function Training({ variant = "section" }: TrainingProps) {
 
   useEffect(() => {
     if (isTrainingCancelled || isTrainingCompleted) {
+      // Lifecycle changes invalidate any previously displayed submit feedback.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFeedback(emptyFeedback);
     }
   }, [isTrainingCancelled, isTrainingCompleted]);
@@ -723,7 +732,7 @@ export default function Training({ variant = "section" }: TrainingProps) {
 
               <div
                 className={`grid ${
-                  isStandalone ? "mt-6 gap-4 sm:grid-cols-3" : "mt-8 gap-5"
+                  isStandalone ? "mt-6 gap-4 sm:grid-cols-4" : "mt-8 gap-5"
                 }`}
               >
                 <div>
@@ -746,6 +755,15 @@ export default function Training({ variant = "section" }: TrainingProps) {
                     {isLoading
                       ? "Завантаження..."
                       : (training?.location ?? "—")}
+                  </strong>
+                </div>
+
+                <div>
+                  <span className="block text-sm text-slate-400">Команда</span>
+                  <strong className="mt-1 block text-xl">
+                    {isLoading
+                      ? "Завантаження..."
+                      : (training?.teamName ?? "—")}
                   </strong>
                 </div>
               </div>

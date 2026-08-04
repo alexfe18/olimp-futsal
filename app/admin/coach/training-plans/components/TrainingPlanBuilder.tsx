@@ -5,29 +5,38 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { categoryLabels } from "@/app/admin/coach/exercises/components/types";
 import { supabase } from "@/lib/supabase";
+import { sendTrainingNotification } from "@/app/admin/trainings/training-notification-service";
 
 import ExerciseLibraryPicker from "./ExerciseLibraryPicker";
 import ExerciseQuickViewDrawer from "./ExerciseQuickViewDrawer";
 import {
   ageGroupOptions,
   intensityOptions,
-  statusOptions,
+  statusClasses,
+  statusLabels,
   trainingBlockTypeLabels,
   trainingBlockTypeOptions,
 } from "./options";
 import {
   createBlockFromExercise,
   createManualBlock,
+  cancelTrainingPlan,
+  completeTrainingPlan,
+  deleteTrainingPlanWithTraining,
   loadExerciseLibrary,
+  publishTrainingPlan,
+  restoreCancelledTrainingPlan,
   saveTrainingPlanDraft,
   saveTrainingTemplateDraft,
+  scheduleTrainingPlan,
+  syncTrainingEventFromPlan,
+  unpublishTrainingPlan,
 } from "./training-plan-service";
 import type {
   ExerciseSummary,
   TrainingPlanBlockDraft,
   TrainingPlanDraft,
   TrainingPlanIntensity,
-  TrainingPlanStatus,
   TrainingTemplateStatus,
 } from "./types";
 import { useTrainingPlanUnsavedChanges } from "./useTrainingPlanUnsavedChanges";
@@ -56,12 +65,19 @@ function serializeDraft(
     templateStatus: templateStatus ?? null,
     title: draft.title,
     sessionDate: draft.sessionDate,
+    sessionTime: draft.sessionTime,
+    location: draft.location,
     teamName: draft.teamName,
     ageGroup: draft.ageGroup,
     objective: draft.objective,
     notes: draft.notes,
     intensity: draft.intensity,
     status: draft.status,
+    trainingId: draft.trainingId,
+    publishedAt: draft.publishedAt,
+    unpublishedAt: draft.unpublishedAt,
+    cancelledAt: draft.cancelledAt,
+    cancellationReason: draft.cancellationReason,
     blocks: draft.blocks.map((block, index) => ({
       exerciseId: block.exerciseId,
       code: block.code,
@@ -73,6 +89,52 @@ function serializeDraft(
       sortOrder: index,
     })),
   });
+}
+
+function didPublishedEventChange(
+  baseline: string,
+  draft: TrainingPlanDraft,
+) {
+  try {
+    const previous = JSON.parse(baseline) as Pick<
+      TrainingPlanDraft,
+      "title" | "sessionDate" | "sessionTime" | "location" | "teamName"
+    >;
+
+    return (
+      previous.title !== draft.title ||
+      previous.sessionDate !== draft.sessionDate ||
+      previous.sessionTime !== draft.sessionTime ||
+      previous.location !== draft.location ||
+      previous.teamName !== draft.teamName
+    );
+  } catch {
+    return true;
+  }
+}
+
+function getPreviousEventContext(baseline: string) {
+  try {
+    const previous = JSON.parse(baseline) as Pick<
+      TrainingPlanDraft,
+      "sessionDate" | "sessionTime" | "location" | "teamName"
+    >;
+    const localStart =
+      previous.sessionDate && previous.sessionTime
+        ? new Date(`${previous.sessionDate}T${previous.sessionTime}:00`)
+        : null;
+
+    return {
+      previousStartsAt:
+        localStart && !Number.isNaN(localStart.getTime())
+          ? localStart.toISOString()
+          : null,
+      previousLocation: previous.location || null,
+      previousTeamName: previous.teamName || null,
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 function formatDateTime(value: string | null | undefined) {
@@ -185,12 +247,18 @@ function friendlySaveError(error: unknown) {
   }
 
   if (
+    normalized.includes("save_training_plan_draft_v2") ||
+    normalized.includes("schedule_training_plan") ||
+    normalized.includes("sync_training_event_from_plan") ||
+    normalized.includes("publish_training_plan") ||
+    normalized.includes("training_plan_events") ||
+    normalized.includes("session_time") ||
     normalized.includes("save_training_plan_draft") ||
     normalized.includes("session_date") ||
     normalized.includes("exercise_id") ||
     normalized.includes("planned_duration_check")
   ) {
-    return "Не вдалося зберегти план. Виконайте актуальну SQL-міграцію Training Builder, а потім повторіть спробу.";
+    return "Не вдалося виконати дію з планом. Виконайте SQL-міграції Sprint 05.2 та 05.2.1, а потім повторіть спробу.";
   }
 
   return `Не вдалося зберегти дані. ${text}`;
@@ -223,6 +291,7 @@ export default function TrainingPlanBuilder({
   const [isSavingAsTemplate, setIsSavingAsTemplate] = useState(false);
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLifecycleAction, setIsLifecycleAction] = useState(false);
   const [message, setMessage] = useState<Message>(null);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(
     updatedAt ?? null,
@@ -233,11 +302,21 @@ export default function TrainingPlanBuilder({
 
   const hasUnsavedChanges =
     serializeDraft(draft, templateStatus) !== baseline;
+  const isBusy =
+    isSaving ||
+    isSavingAsTemplate ||
+    isDuplicating ||
+    isDeleting ||
+    isLifecycleAction;
   const { navigateAfterSave, navigateSafely } =
     useTrainingPlanUnsavedChanges({
       hasUnsavedChanges,
       isSaving:
-        isSaving || isSavingAsTemplate || isDuplicating || isDeleting,
+        isSaving ||
+        isSavingAsTemplate ||
+        isDuplicating ||
+        isDeleting ||
+        isLifecycleAction,
     });
 
   const loadExercises = useCallback(async () => {
@@ -406,7 +485,71 @@ export default function TrainingPlanBuilder({
       return `Перевірте тривалість блоку «${invalidDuration.title}». Дозволено від 1 до 300 хвилин.`;
     }
 
+    if (
+      !isTemplate &&
+      ["planned", "published", "in_progress"].includes(draft.status)
+    ) {
+      if (!draft.sessionDate) return "Вкажіть дату тренування.";
+      if (!draft.sessionTime) return "Вкажіть час тренування.";
+      if (!draft.location.trim()) return "Вкажіть місце проведення.";
+      if (!draft.teamName.trim()) return "Вкажіть команду.";
+    }
+
     return null;
+  }
+
+  function validatePublication() {
+    const draftError = validateDraft();
+    if (draftError) return draftError;
+
+    if (!draft.sessionDate) {
+      return "Вкажіть дату тренування перед плануванням або публікацією.";
+    }
+
+    if (!draft.sessionTime) {
+      return "Вкажіть час тренування перед плануванням або публікацією.";
+    }
+
+    if (!draft.location.trim()) {
+      return "Вкажіть місце проведення перед плануванням або публікацією.";
+    }
+
+    if (!draft.teamName.trim()) {
+      return "Вкажіть команду перед плануванням або публікацією.";
+    }
+
+    return null;
+  }
+
+  function updateLifecycleDraft(
+    patch: Partial<TrainingPlanDraft>,
+    successText: string,
+  ) {
+    const nextDraft = { ...draft, ...patch };
+    setDraft(nextDraft);
+    setBaseline(serializeDraft(nextDraft, templateStatus));
+    setLastSavedAt(new Date().toISOString());
+    setMessage({ type: "success", text: successText });
+  }
+
+  async function trySendTrainingNotification(
+    trainingId: string | null,
+    eventType: "published" | "updated" | "cancelled" | "restored",
+    context?: {
+      previousStartsAt?: string | null;
+      previousLocation?: string | null;
+      previousTeamName?: string | null;
+    },
+  ) {
+    if (!trainingId) return "";
+
+    try {
+      await sendTrainingNotification(trainingId, eventType, context);
+      return "";
+    } catch (error) {
+      console.error("Training Push notification error:", error);
+      return " Дані збережено, але Push-сповіщення не надіслано.";
+    }
   }
 
   async function handleSave() {
@@ -417,6 +560,25 @@ export default function TrainingPlanBuilder({
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
+
+    if (
+      !isTemplate &&
+      draft.status === "published" &&
+      !window.confirm(
+        "План уже опубліковано. Збережені зміни одразу оновлять пов’язане тренування. Продовжити?",
+      )
+    ) {
+      return;
+    }
+
+    const shouldNotifyEventUpdate =
+      !isTemplate &&
+      draft.status === "published" &&
+      Boolean(draft.trainingId) &&
+      didPublishedEventChange(baseline, draft);
+    const previousEventContext = shouldNotifyEventUpdate
+      ? getPreviousEventContext(baseline)
+      : undefined;
 
     setIsSaving(true);
     setMessage(null);
@@ -439,15 +601,34 @@ export default function TrainingPlanBuilder({
             blocks: normalizedBlocks,
           });
 
+      let linkedTrainingId = draft.trainingId;
+
+      if (
+        !isTemplate &&
+        ["planned", "published", "in_progress"].includes(draft.status)
+      ) {
+        const syncResult = await syncTrainingEventFromPlan(savedId);
+        linkedTrainingId = syncResult.training_id;
+      }
+
       const savedDraft = {
         ...draft,
         id: savedId,
+        trainingId: linkedTrainingId,
         blocks: normalizedBlocks,
       };
 
       setDraft(savedDraft);
       setBaseline(serializeDraft(savedDraft, templateStatus));
       setLastSavedAt(new Date().toISOString());
+
+      const pushWarning = shouldNotifyEventUpdate
+        ? await trySendTrainingNotification(
+            linkedTrainingId,
+            "updated",
+            previousEventContext,
+          )
+        : "";
 
       if (mode === "create") {
         navigateAfterSave(
@@ -462,7 +643,11 @@ export default function TrainingPlanBuilder({
         type: "success",
         text: isTemplate
           ? "Шаблон тренування збережено."
-          : "Чернетку тренування збережено.",
+          : draft.status === "published"
+            ? `Опублікований план і пов’язане тренування оновлено.${pushWarning}`
+            : draft.status === "planned"
+              ? "План і пов’язане тренування оновлено."
+              : `План тренування збережено.${pushWarning}`,
       });
     } catch (error) {
       setMessage({ type: "error", text: friendlySaveError(error) });
@@ -472,14 +657,265 @@ export default function TrainingPlanBuilder({
     }
   }
 
-  async function handleDelete() {
-    if (!draft.id) return;
+  async function handleMarkPlanned() {
+    const validationError = validatePublication();
+
+    if (validationError) {
+      setMessage({ type: "error", text: validationError });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    setIsLifecycleAction(true);
+    setMessage(null);
+
+    try {
+      const normalizedBlocks = normalizeBlocks(
+        hydrateExerciseLinks(draft.blocks, exercises),
+      );
+      const nextDraft: TrainingPlanDraft = {
+        ...draft,
+        status: "planned",
+        blocks: normalizedBlocks,
+      };
+      const savedId = await saveTrainingPlanDraft(nextDraft);
+      const result = await scheduleTrainingPlan(savedId);
+      const savedDraft = {
+        ...nextDraft,
+        id: savedId,
+        trainingId: result.training_id,
+      };
+      setDraft(savedDraft);
+      setBaseline(serializeDraft(savedDraft, templateStatus));
+      setLastSavedAt(new Date().toISOString());
+
+      if (mode === "create") {
+        navigateAfterSave(`/admin/coach/training-plans/${savedId}`);
+        return;
+      }
+
+      setMessage({
+        type: "success",
+        text: "План заплановано. Пов’язане тренування створено на вибраний день, але ще не опубліковано для гравців.",
+      });
+    } catch (error) {
+      setMessage({ type: "error", text: friendlySaveError(error) });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setIsLifecycleAction(false);
+    }
+  }
+
+  async function handlePublish() {
+    const validationError = validatePublication();
+
+    if (validationError) {
+      setMessage({ type: "error", text: validationError });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
 
     if (
       !window.confirm(
+        "Опублікувати тренування? Пов’язана подія буде створена або оновлена у розділі «Тренування» та стане активною для підтвердження участі гравцями.",
+      )
+    ) {
+      return;
+    }
+
+    setIsLifecycleAction(true);
+    setMessage(null);
+
+    try {
+      const normalizedBlocks = normalizeBlocks(
+        hydrateExerciseLinks(draft.blocks, exercises),
+      );
+      const savedId = await saveTrainingPlanDraft({
+        ...draft,
+        blocks: normalizedBlocks,
+      });
+      const result = await publishTrainingPlan(savedId);
+      const pushWarning = await trySendTrainingNotification(
+        result.training_id,
+        "published",
+      );
+      const nextDraft: TrainingPlanDraft = {
+        ...draft,
+        id: savedId,
+        status: "published",
+        trainingId: result.training_id,
+        publishedAt: result.published_at ?? new Date().toISOString(),
+        unpublishedAt: null,
+        cancelledAt: null,
+        cancellationReason: "",
+        blocks: normalizedBlocks,
+      };
+
+      setDraft(nextDraft);
+      setBaseline(serializeDraft(nextDraft, templateStatus));
+      setLastSavedAt(new Date().toISOString());
+
+      if (mode === "create") {
+        navigateAfterSave(`/admin/coach/training-plans/${savedId}`);
+        return;
+      }
+
+      setMessage({
+        type: "success",
+        text: `Тренування опубліковано, додано до розділу «Тренування» та активовано для гравців.${pushWarning}`,
+      });
+    } catch (error) {
+      setMessage({ type: "error", text: friendlySaveError(error) });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setIsLifecycleAction(false);
+    }
+  }
+
+  async function handleUnpublish() {
+    if (!draft.id) return;
+    if (
+      !window.confirm(
+        "Зняти тренування з публікації? Пов’язана подія та відповіді збережуться, але тренування більше не буде активним для гравців.",
+      )
+    ) return;
+
+    setIsLifecycleAction(true);
+    setMessage(null);
+    try {
+      const result = await unpublishTrainingPlan(draft.id);
+      updateLifecycleDraft(
+        {
+          status: "planned",
+          unpublishedAt: result.unpublished_at ?? new Date().toISOString(),
+        },
+        "Тренування знято з публікації. Пов’язана подія та відвідуваність збережені.",
+      );
+    } catch (error) {
+      setMessage({ type: "error", text: friendlySaveError(error) });
+    } finally {
+      setIsLifecycleAction(false);
+    }
+  }
+
+  async function handleCancelPlan() {
+    if (!draft.id) return;
+    const reason = window.prompt(
+      "Вкажіть причину скасування тренування:",
+      draft.cancellationReason,
+    );
+    if (reason === null) return;
+    if (!reason.trim()) {
+      setMessage({ type: "error", text: "Вкажіть причину скасування." });
+      return;
+    }
+    if (!window.confirm(`Скасувати тренування «${draft.title}»?`)) return;
+
+    setIsLifecycleAction(true);
+    setMessage(null);
+    try {
+      const result = await cancelTrainingPlan(draft.id, reason.trim());
+      const pushWarning = result.notify
+        ? await trySendTrainingNotification(result.training_id, "cancelled")
+        : "";
+      updateLifecycleDraft(
+        {
+          status: "cancelled",
+          cancelledAt: result.cancelled_at ?? new Date().toISOString(),
+          cancellationReason:
+            result.cancellation_reason ?? reason.trim(),
+        },
+        `Тренування скасовано. Причину синхронізовано з пов’язаною подією.${pushWarning}`,
+      );
+    } catch (error) {
+      setMessage({ type: "error", text: friendlySaveError(error) });
+    } finally {
+      setIsLifecycleAction(false);
+    }
+  }
+
+  async function handleRestorePlan() {
+    if (!draft.id) return;
+    if (!window.confirm(`Відновити тренування «${draft.title}»?`)) return;
+
+    setIsLifecycleAction(true);
+    setMessage(null);
+    try {
+      const result = await restoreCancelledTrainingPlan(draft.id);
+      const pushWarning = result.notify
+        ? await trySendTrainingNotification(result.training_id, "restored")
+        : "";
+      updateLifecycleDraft(
+        {
+          status: result.notify ? "published" : "planned",
+          cancelledAt: null,
+          cancellationReason: "",
+        },
+        result.notify
+          ? `Тренування відновлено та знову активовано для гравців.${pushWarning}`
+          : "План відновлено. Перед показом гравцям опублікуйте його повторно.",
+      );
+    } catch (error) {
+      setMessage({ type: "error", text: friendlySaveError(error) });
+    } finally {
+      setIsLifecycleAction(false);
+    }
+  }
+
+  async function handleCompletePlan() {
+    if (!draft.id) return;
+    if (
+      !window.confirm(
+        `Завершити тренування «${draft.title}»? Голосування буде закрито, а відвідуваність збережеться.`,
+      )
+    ) return;
+
+    setIsLifecycleAction(true);
+    setMessage(null);
+    try {
+      await completeTrainingPlan(draft.id);
+      updateLifecycleDraft(
+        { status: "completed" },
+        "Тренування завершено. Дані відвідуваності збережено.",
+      );
+    } catch (error) {
+      setMessage({ type: "error", text: friendlySaveError(error) });
+    } finally {
+      setIsLifecycleAction(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!draft.id) return;
+
+    if (!isTemplate && ["published", "in_progress"].includes(draft.status)) {
+      setMessage({
+        type: "error",
+        text: "Спочатку зніміть опублікований план з публікації або скасуйте тренування.",
+      });
+      return;
+    }
+
+    let confirmationTitle: string | null = null;
+
+    if (!isTemplate && draft.status === "completed") {
+      confirmationTitle = window.prompt(
+        "Для видалення завершеного тренування введіть його точну назву:",
+        "",
+      );
+      if (confirmationTitle === null) return;
+      if (confirmationTitle !== draft.title) {
+        setMessage({
+          type: "error",
+          text: "Назва не збігається. Завершений план не видалено.",
+        });
+        return;
+      }
+    } else if (
+      !window.confirm(
         isTemplate
           ? `Видалити шаблон «${draft.title || "Без назви"}» разом з усіма блоками?`
-          : `Видалити план «${draft.title || "Без назви"}» разом з усіма блоками?`,
+          : `Видалити план «${draft.title || "Без назви"}» разом із пов’язаним тренуванням і відвідуваністю?`,
       )
     ) {
       return;
@@ -488,24 +924,30 @@ export default function TrainingPlanBuilder({
     setIsDeleting(true);
     setMessage(null);
 
-    const { error } = await supabase
-      .from(isTemplate ? "training_templates" : "training_plans")
-      .delete()
-      .eq("id", draft.id);
+    try {
+      if (isTemplate) {
+        const { error } = await supabase
+          .from("training_templates")
+          .delete()
+          .eq("id", draft.id);
+        if (error) throw error;
+      } else {
+        await deleteTrainingPlanWithTraining(draft.id, confirmationTitle);
+      }
 
-    if (error) {
+      setBaseline(serializeDraft(draft, templateStatus));
+      navigateAfterSave(backHref);
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
       setMessage({
         type: "error",
         text: isTemplate
-          ? `Не вдалося видалити шаблон. ${error.message}`
-          : `Не вдалося видалити план. ${error.message}`,
+          ? `Не вдалося видалити шаблон. ${text}`
+          : `Не вдалося видалити план. ${text}`,
       });
+    } finally {
       setIsDeleting(false);
-      return;
     }
-
-    setBaseline(serializeDraft(draft, templateStatus));
-    navigateAfterSave(backHref);
   }
 
   async function handleSaveAsTemplate() {
@@ -542,7 +984,14 @@ export default function TrainingPlanBuilder({
           id: null,
           title: requestedTitle.trim(),
           sessionDate: "",
+          sessionTime: "",
+          location: "",
           status: "draft",
+          trainingId: null,
+          publishedAt: null,
+          unpublishedAt: null,
+          cancelledAt: null,
+          cancellationReason: "",
           blocks: normalizedBlocks.map((block, index) => ({
             ...block,
             clientId: crypto.randomUUID(),
@@ -609,6 +1058,11 @@ export default function TrainingPlanBuilder({
         title: requestedTitle.trim(),
         sessionDate: "",
         status: "draft",
+        trainingId: null,
+        publishedAt: null,
+        unpublishedAt: null,
+        cancelledAt: null,
+        cancellationReason: "",
         blocks: normalizedBlocks.map((block, index) => ({
           ...block,
           clientId: crypto.randomUUID(),
@@ -778,6 +1232,32 @@ export default function TrainingPlanBuilder({
                   </Field>
                 )}
 
+                {!isTemplate ? (
+                  <Field label="Час">
+                    <input
+                      type="time"
+                      value={draft.sessionTime}
+                      onChange={(event) =>
+                        updateMetadata("sessionTime", event.target.value)
+                      }
+                      className="input-control"
+                    />
+                  </Field>
+                ) : null}
+
+                {!isTemplate ? (
+                  <Field label="Місце проведення">
+                    <input
+                      value={draft.location}
+                      onChange={(event) =>
+                        updateMetadata("location", event.target.value)
+                      }
+                      placeholder="Наприклад: ФОК Олімп"
+                      className="input-control"
+                    />
+                  </Field>
+                ) : null}
+
                 <Field label="Команда">
                   <input
                     value={draft.teamName}
@@ -825,24 +1305,15 @@ export default function TrainingPlanBuilder({
                   </select>
                 </Field>
 
-                {!isTemplate && mode === "edit" ? (
-                  <Field label="Статус">
-                    <select
-                      value={draft.status}
-                      onChange={(event) =>
-                        updateMetadata(
-                          "status",
-                          event.target.value as TrainingPlanStatus,
-                        )
-                      }
-                      className="input-control"
-                    >
-                      {statusOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                {!isTemplate ? (
+                  <Field label="Статус плану">
+                    <div className="input-control flex items-center">
+                      <span
+                        className={`rounded-full px-3 py-1 text-sm font-black ${statusClasses[draft.status]}`}
+                      >
+                        {statusLabels[draft.status]}
+                      </span>
+                    </div>
                   </Field>
                 ) : null}
               </div>
@@ -1162,9 +1633,18 @@ export default function TrainingPlanBuilder({
             />
 
             <section className="rounded-[2rem] bg-slate-950 p-5 text-white shadow-xl sm:p-6">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-400">
-                {isTemplate ? "Шаблон" : "Чернетка"}
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-400">
+                  {isTemplate ? "Шаблон" : "Training Publish Flow"}
+                </p>
+                {!isTemplate ? (
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-black ${statusClasses[draft.status]}`}
+                  >
+                    {statusLabels[draft.status]}
+                  </span>
+                ) : null}
+              </div>
               <h2 className="mt-3 text-2xl font-black">
                 {totalDuration} хв · {draft.blocks.length} блоків
               </h2>
@@ -1178,7 +1658,23 @@ export default function TrainingPlanBuilder({
                     value={templateStatus === "active" ? "Активний" : "В архіві"}
                   />
                 ) : (
-                  <SideMetric label="Дата" value={draft.sessionDate || "—"} />
+                  <>
+                    <SideMetric label="Дата" value={draft.sessionDate || "—"} />
+                    <SideMetric label="Час" value={draft.sessionTime || "—"} />
+                    <SideMetric label="Місце" value={draft.location || "—"} />
+                    {draft.publishedAt ? (
+                      <SideMetric
+                        label="Опубліковано"
+                        value={formatDateTime(draft.publishedAt)}
+                      />
+                    ) : null}
+                    {draft.cancellationReason ? (
+                      <SideMetric
+                        label="Причина"
+                        value={draft.cancellationReason}
+                      />
+                    ) : null}
+                  </>
                 )}
                 {mode === "edit" ? (
                   <>
@@ -1190,12 +1686,7 @@ export default function TrainingPlanBuilder({
 
               <button
                 type="button"
-                disabled={
-                  isSaving ||
-                  isSavingAsTemplate ||
-                  isDuplicating ||
-                  isDeleting
-                }
+                disabled={isBusy}
                 onClick={() => void handleSave()}
                 className="mt-6 inline-flex min-h-13 w-full items-center justify-center rounded-full bg-sky-400 px-6 font-black text-slate-950 transition hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -1210,16 +1701,101 @@ export default function TrainingPlanBuilder({
                       : "Зберегти зміни"}
               </button>
 
+              {!isTemplate && draft.status === "draft" ? (
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => void handleMarkPlanned()}
+                  className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-sky-400/40 px-5 text-sm font-black text-sky-300 transition hover:bg-sky-400/10 disabled:opacity-50"
+                >
+                  Запланувати без публікації
+                </button>
+              ) : null}
+
+              {!isTemplate && ["draft", "planned"].includes(draft.status) ? (
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => void handlePublish()}
+                  className="mt-3 inline-flex min-h-13 w-full items-center justify-center rounded-full bg-emerald-400 px-6 font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isLifecycleAction ? "Публікація..." : "Опублікувати тренування"}
+                </button>
+              ) : null}
+
+              {!isTemplate && draft.status === "published" ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => void handleUnpublish()}
+                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-amber-300/50 px-5 text-sm font-black text-amber-200 transition hover:bg-amber-400/10 disabled:opacity-50"
+                  >
+                    Зняти з публікації
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => void handleCompletePlan()}
+                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-emerald-400/40 px-5 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/10 disabled:opacity-50"
+                  >
+                    Завершити тренування
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => void handleCancelPlan()}
+                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-rose-400/40 px-5 text-sm font-black text-rose-300 transition hover:bg-rose-400/10 disabled:opacity-50"
+                  >
+                    Скасувати тренування
+                  </button>
+                </>
+              ) : null}
+
+              {!isTemplate && draft.status === "planned" && draft.id ? (
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => void handleCancelPlan()}
+                  className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-rose-400/40 px-5 text-sm font-black text-rose-300 transition hover:bg-rose-400/10 disabled:opacity-50"
+                >
+                  Скасувати заплановане
+                </button>
+              ) : null}
+
+              {!isTemplate && draft.status === "cancelled" ? (
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => void handleRestorePlan()}
+                  className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-emerald-400/40 px-5 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/10 disabled:opacity-50"
+                >
+                  Відновити тренування
+                </button>
+              ) : null}
+
+              {!isTemplate && draft.trainingId ? (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                  <Link
+                    href={`/admin/trainings#training-${draft.trainingId}`}
+                    className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-4 text-center text-sm font-black text-white transition hover:border-sky-400 hover:text-sky-300"
+                  >
+                    Пов’язане тренування
+                  </Link>
+                  <Link
+                    href={`/admin/attendance/${draft.trainingId}`}
+                    className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-4 text-center text-sm font-black text-white transition hover:border-sky-400 hover:text-sky-300"
+                  >
+                    Відвідуваність
+                  </Link>
+                </div>
+              ) : null}
+
               {!isTemplate && mode === "edit" ? (
                 <>
                   <button
                     type="button"
-                    disabled={
-                      isSaving ||
-                      isSavingAsTemplate ||
-                      isDuplicating ||
-                      isDeleting
-                    }
+                    disabled={isBusy}
                     onClick={() => void handleDuplicateCurrentPlan()}
                     className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-sky-400/40 px-5 text-sm font-black text-sky-300 transition hover:bg-sky-400/10 disabled:opacity-50"
                   >
@@ -1227,12 +1803,7 @@ export default function TrainingPlanBuilder({
                   </button>
                   <button
                     type="button"
-                    disabled={
-                      isSaving ||
-                      isSavingAsTemplate ||
-                      isDuplicating ||
-                      isDeleting
-                    }
+                    disabled={isBusy}
                     onClick={() => void handleSaveAsTemplate()}
                     className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-emerald-400/40 px-5 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/10 disabled:opacity-50"
                   >
@@ -1246,12 +1817,7 @@ export default function TrainingPlanBuilder({
               {isTemplate && mode === "edit" && draft.id ? (
                 <button
                   type="button"
-                  disabled={
-                    isSaving ||
-                    isSavingAsTemplate ||
-                    isDuplicating ||
-                    isDeleting
-                  }
+                  disabled={isBusy}
                   onClick={() =>
                     navigateSafely(
                       `/admin/coach/training-plans/new?template=${draft.id}`,
@@ -1265,12 +1831,7 @@ export default function TrainingPlanBuilder({
 
               <button
                 type="button"
-                disabled={
-                  isSaving ||
-                  isSavingAsTemplate ||
-                  isDuplicating ||
-                  isDeleting
-                }
+                disabled={isBusy}
                 onClick={() => navigateSafely(backHref)}
                 className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-white/15 px-5 text-sm font-black text-white transition hover:border-sky-400 hover:text-sky-300 disabled:opacity-50"
               >
@@ -1280,14 +1841,9 @@ export default function TrainingPlanBuilder({
               {mode === "edit" ? (
                 <button
                   type="button"
-                  disabled={
-                    isSaving ||
-                    isSavingAsTemplate ||
-                    isDuplicating ||
-                    isDeleting
-                  }
+                  disabled={isBusy || (!isTemplate && ["published", "in_progress"].includes(draft.status))}
                   onClick={() => void handleDelete()}
-                  className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-rose-400/40 px-5 text-sm font-black text-rose-300 transition hover:bg-rose-400/10 disabled:opacity-50"
+                  className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-rose-400/40 px-5 text-sm font-black text-rose-300 transition hover:bg-rose-400/10 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {isDeleting
                     ? "Видалення..."

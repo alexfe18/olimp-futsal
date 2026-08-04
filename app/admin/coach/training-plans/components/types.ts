@@ -1,6 +1,7 @@
 export type TrainingPlanStatus =
   | "draft"
   | "planned"
+  | "published"
   | "in_progress"
   | "completed"
   | "cancelled";
@@ -46,12 +47,19 @@ export type TrainingPlanDraft = {
   id: string | null;
   title: string;
   sessionDate: string;
+  sessionTime: string;
+  location: string;
   teamName: string;
   ageGroup: string;
   objective: string;
   notes: string;
   intensity: TrainingPlanIntensity;
   status: TrainingPlanStatus;
+  trainingId: string | null;
+  publishedAt: string | null;
+  unpublishedAt: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string;
   blocks: TrainingPlanBlockDraft[];
 };
 
@@ -71,6 +79,13 @@ export type TrainingPlanRow = {
   id: string;
   title: string;
   session_date: string | null;
+  session_time: string | null;
+  location: string | null;
+  training_id: string | null;
+  published_at: string | null;
+  unpublished_at: string | null;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
   team_name: string | null;
   age_group: string | null;
   objective: string | null;
@@ -87,6 +102,13 @@ export type TrainingPlanListRow = {
   id: string;
   title: string;
   session_date: string | null;
+  session_time: string | null;
+  location: string | null;
+  training_id: string | null;
+  published_at: string | null;
+  unpublished_at: string | null;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
   team_name: string | null;
   age_group: string | null;
   objective: string | null;

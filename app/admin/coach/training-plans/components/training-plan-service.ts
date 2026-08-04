@@ -219,6 +219,13 @@ export async function loadTrainingPlan(planId: string) {
         id,
         title,
         session_date,
+        session_time,
+        location,
+        training_id,
+        published_at,
+        unpublished_at,
+        cancelled_at,
+        cancellation_reason,
         team_name,
         age_group,
         objective,
@@ -259,12 +266,19 @@ export async function loadTrainingPlan(planId: string) {
     id: row.id,
     title: row.title,
     sessionDate: row.session_date ?? "",
+    sessionTime: row.session_time?.slice(0, 5) ?? "",
+    location: row.location ?? "",
     teamName: row.team_name ?? "Олімп Футзал",
     ageGroup: row.age_group ?? "",
     objective: row.objective ?? "",
     notes: row.notes ?? "",
     intensity: row.intensity,
     status: row.status,
+    trainingId: row.training_id,
+    publishedAt: row.published_at,
+    unpublishedAt: row.unpublished_at,
+    cancelledAt: row.cancelled_at,
+    cancellationReason: row.cancellation_reason ?? "",
     blocks: mapBlocksToDraft(row.training_plan_blocks ?? []),
   };
 
@@ -323,12 +337,19 @@ export async function loadTrainingTemplate(templateId: string) {
     id: row.id,
     title: row.title,
     sessionDate: "",
+    sessionTime: "",
+    location: "",
     teamName: row.team_name ?? "Олімп Футзал",
     ageGroup: row.age_group ?? "",
     objective: row.objective ?? "",
     notes: row.notes ?? "",
     intensity: row.intensity,
     status: "draft",
+    trainingId: null,
+    publishedAt: null,
+    unpublishedAt: null,
+    cancelledAt: null,
+    cancellationReason: "",
     blocks: mapBlocksToDraft(row.training_template_blocks ?? []),
   };
 
@@ -355,7 +376,14 @@ export async function createPlanDraftFromTemplate(templateId: string) {
       ...loaded.draft,
       id: null,
       sessionDate: "",
+      sessionTime: "19:00",
+      location: "ФОК Олімп",
       status: "draft" as const,
+      trainingId: null,
+      publishedAt: null,
+      unpublishedAt: null,
+      cancelledAt: null,
+      cancellationReason: "",
       blocks: loaded.draft.blocks.map((block, index) => ({
         ...block,
         clientId: crypto.randomUUID(),
@@ -368,10 +396,12 @@ export async function createPlanDraftFromTemplate(templateId: string) {
 }
 
 export async function saveTrainingPlanDraft(draft: TrainingPlanDraft) {
-  const { data, error } = await supabase.rpc("save_training_plan_draft", {
+  const { data, error } = await supabase.rpc("save_training_plan_draft_v2", {
     p_plan_id: draft.id,
     p_title: draft.title.trim(),
     p_session_date: draft.sessionDate || null,
+    p_session_time: draft.sessionTime || null,
+    p_location: draft.location.trim() || null,
     p_team_name: draft.teamName.trim() || null,
     p_age_group: draft.ageGroup || null,
     p_objective: draft.objective.trim() || null,
@@ -431,7 +461,13 @@ export async function duplicateTrainingPlan(
     id: null,
     title: requestedTitle?.trim() || `Копія — ${loaded.draft.title}`,
     sessionDate: "",
+    sessionTime: loaded.draft.sessionTime || "19:00",
     status: "draft",
+    trainingId: null,
+    publishedAt: null,
+    unpublishedAt: null,
+    cancelledAt: null,
+    cancellationReason: "",
     blocks: loaded.draft.blocks.map((block, index) => ({
       ...block,
       clientId: crypto.randomUUID(),
@@ -453,7 +489,14 @@ export async function createTrainingTemplateFromPlan(
     id: null,
     title: requestedTitle?.trim() || `Шаблон — ${loaded.draft.title}`,
     sessionDate: "",
+    sessionTime: "",
+    location: "",
     status: "draft",
+    trainingId: null,
+    publishedAt: null,
+    unpublishedAt: null,
+    cancelledAt: null,
+    cancellationReason: "",
     blocks: loaded.draft.blocks.map((block, index) => ({
       ...block,
       clientId: crypto.randomUUID(),
@@ -463,4 +506,96 @@ export async function createTrainingTemplateFromPlan(
   };
 
   return saveTrainingTemplateDraft(templateDraft, "active", planId);
+}
+
+type TrainingPlanLifecycleResult = {
+  plan_id: string;
+  training_id: string | null;
+  status: TrainingPlanDraft["status"];
+  published_at?: string;
+  unpublished_at?: string;
+  cancelled_at?: string;
+  cancellation_reason?: string;
+  starts_at?: string;
+  notify?: boolean;
+};
+
+async function callLifecycleRpc(
+  functionName:
+    | "schedule_training_plan"
+    | "sync_training_event_from_plan"
+    | "publish_training_plan"
+    | "unpublish_training_plan"
+    | "cancel_training_plan"
+    | "restore_cancelled_training_plan"
+    | "complete_training_plan",
+  args: Record<string, string>,
+) {
+  const { data, error } = await supabase.rpc(functionName, args);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data || typeof data !== "object") {
+    throw new Error("Операція не повернула результат Training Publish Flow.");
+  }
+
+  return data as TrainingPlanLifecycleResult;
+}
+
+export function scheduleTrainingPlan(planId: string) {
+  return callLifecycleRpc("schedule_training_plan", { p_plan_id: planId });
+}
+
+export function syncTrainingEventFromPlan(planId: string) {
+  return callLifecycleRpc("sync_training_event_from_plan", {
+    p_plan_id: planId,
+  });
+}
+
+export function publishTrainingPlan(planId: string) {
+  return callLifecycleRpc("publish_training_plan", { p_plan_id: planId });
+}
+
+export function unpublishTrainingPlan(planId: string) {
+  return callLifecycleRpc("unpublish_training_plan", { p_plan_id: planId });
+}
+
+export function cancelTrainingPlan(planId: string, reason: string) {
+  return callLifecycleRpc("cancel_training_plan", {
+    p_plan_id: planId,
+    p_reason: reason,
+  });
+}
+
+export function restoreCancelledTrainingPlan(planId: string) {
+  return callLifecycleRpc("restore_cancelled_training_plan", {
+    p_plan_id: planId,
+  });
+}
+
+export function completeTrainingPlan(planId: string) {
+  return callLifecycleRpc("complete_training_plan", { p_plan_id: planId });
+}
+
+export async function deleteTrainingPlanWithTraining(
+  planId: string,
+  confirmationTitle: string | null = null,
+) {
+  const { data, error } = await supabase.rpc(
+    "delete_training_plan_with_training",
+    {
+      p_plan_id: planId,
+      p_confirmation_title: confirmationTitle,
+    },
+  );
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (data !== true) {
+    throw new Error("План тренування не було видалено.");
+  }
 }

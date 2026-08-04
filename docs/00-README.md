@@ -104,6 +104,8 @@ Project documentation is divided into individual sections.
 | 21-sprint-4-coach-workspace-navigation.md | Coach navigation |
 | 22-sprint-4-exercise-media-import.md | Media Batch Import   |
 | 24-sprint-5-training-builder-foundation.md | Training Builder Foundation |
+| 29-sprint-5.2-training-publish-flow.md | Training Publish Flow |
+| 30-sprint-5.2.1-plan-training-integration-ux-completion.md | Plan ↔ Training Integration |
 
 ---
 

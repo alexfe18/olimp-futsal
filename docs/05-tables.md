@@ -8,7 +8,7 @@
 
 # 1. Загальна інформація
 
-База даних системи **«Олімп Футзал»** включає **22 основні таблиці**, які забезпечують роботу всіх функціональних модулів системи.
+База даних системи **«Олімп Футзал»** включає **23 основні таблиці**, які забезпечують роботу всіх функціональних модулів системи.
 
 Кожна таблиця має чітке призначення та використовується одним або декількома модулями.
 
@@ -40,6 +40,7 @@
 | training_plan_blocks        | Training Builder   |
 | training_templates          | Training Templates |
 | training_template_blocks    | Training Templates |
+| training_plan_events        | Training Publish Flow |
 
 ---
 
@@ -86,15 +87,17 @@
 | title               | text        |
 | starts_at           | timestamptz |
 | location            | text        |
+| team_name           | text        |
 | status              | text        |
 | is_active           | boolean     |
 | cancellation_reason | text        |
 | created_at          | timestamptz |
 | updated_at          | timestamptz |
+| was_active_before_cancel | boolean |
 
 ### Використовується
 
-- Training Calendar
+- Trainings schedule
 - Attendance
 - Push Notifications
 
@@ -450,15 +453,18 @@ Training Builder використовує лише вправи зі status `act
 |---|---|---|
 | id | uuid | ID плану |
 | title | text | Назва сесії |
-| training_id | uuid nullable | Існуючий зв’язок із calendar training |
+| training_id | uuid nullable | Унікальний зв’язок із конкретним `trainings` event |
 | session_date | date nullable | Дата в Training Builder |
+| session_time | time nullable | Локальний час початку Europe/Kyiv |
+| location | text nullable | Місце проведення |
 | team_name | text nullable | Команда або група |
 | age_group | text nullable | Вікова група |
 | objective | text nullable | Головна мета |
 | planned_duration | integer | Сума тривалості блоків |
 | intensity | text | low / medium / high / recovery |
-| status | text | draft / planned / in_progress / completed / cancelled |
+| status | text | draft / planned / published / in_progress / completed / cancelled |
 | notes | text nullable | Нотатки тренера |
+| status_before_cancel | text nullable | Статус для коректного відновлення після скасування |
 | created_at / updated_at | timestamptz | Системні timestamps |
 
 # 21. Training Plan Blocks
@@ -522,3 +528,26 @@ FK `exercise_id` використовує `ON DELETE SET NULL`, тому вид�
 - block_type;
 - sort_order;
 - notes.
+
+# 23. Training Publish Flow additions
+
+## training_plans lifecycle metadata
+
+| Поле | Тип | Призначення |
+|---|---|---|
+| session_time | time nullable | Локальний час початку Europe/Kyiv |
+| location | text nullable | Місце проведення |
+| published_at | timestamptz nullable | Остання публікація |
+| published_by | uuid nullable | Користувач, який опублікував план |
+| unpublished_at | timestamptz nullable | Останнє зняття з публікації |
+| cancelled_at | timestamptz nullable | Дата скасування |
+| cancellation_reason | text nullable | Причина скасування |
+
+Статус `training_plans.status` у Sprint 05.2 підтримує `published` на додаток до
+попередніх значень.
+
+## training_plan_events
+
+Lifecycle outbox для синхронізації Plan ↔ Training та вже працюючих Push-сповіщень. Зберігає `training_plan_id`,
+optional `training_id`, `event_type`, `payload`, `created_by`, `created_at` і
+`processed_at`.

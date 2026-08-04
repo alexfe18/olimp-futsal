@@ -361,3 +361,26 @@ Date: 2026-07-31
 - Exercise Details now loads and displays import source metadata.
 - System history shows the explicit last-update timestamp and data origin.
 - Added a one-time SQL cleanup for existing QA-imported titles.
+
+## Sprint 05.2 — Training Publish Flow
+
+- Added Draft → Planned → Published → Completed/Cancelled lifecycle.
+- Added session time, location and publication metadata to Training Builder.
+- Added atomic publish/unpublish/cancel/restore/complete Supabase RPCs.
+- Connected plans to concrete training events and Attendance through `training_id`.
+- Added future push event outbox `training_plan_events`.
+- Added published-plan update synchronization and safety confirmation.
+- Added date filters, linked training links and deletion protection to plan listing.
+
+## Sprint 05.2.1 — Plan ↔ Training Integration & UX Completion
+
+- Planning now creates one inactive linked training on the selected day.
+- Publishing activates the same training UUID without duplication.
+- Added Plan ↔ Training direct navigation and linked plan summary.
+- Added bidirectional date/time/location/team synchronization.
+- Added `team_name` to concrete training events and player-facing event details.
+- Connected lifecycle actions to the existing Push notification service.
+- Added reschedule/location/team/cancel/restore notification messages.
+- Added restore-to-active behavior for a training cancelled while published.
+- Kept manual trainings without plans fully supported.
+- Clarified that the general club calendar is a separate future module.
