@@ -35,8 +35,10 @@ export default function TrainingPlanEditorPage() {
 
       setErrorMessage(
         normalized.includes("session_date") ||
+          normalized.includes("session_time") ||
+          normalized.includes("training_plan_events") ||
           normalized.includes("exercise_id")
-          ? "Не вдалося відкрити план. Виконайте актуальну SQL-міграцію Training Builder."
+          ? "Не вдалося відкрити план. Виконайте SQL-міграцію Sprint 05.2 Training Publish Flow."
           : `Не вдалося відкрити план тренування. ${text}`,
       );
       setLoadedPlan(null);

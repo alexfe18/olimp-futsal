@@ -349,3 +349,54 @@ Gallery
 ### Міграція
 
 `sql/2026-08-03-training-templates-and-plan-duplication.sql`
+
+# Sprint 05.2 / 05.2.1 — Training Publish Flow RPC
+
+## save_training_plan_draft_v2(...)
+
+Versioned save flow з підтримкою дати, часу, місця, команди та повного lifecycle.
+Для вже пов’язаного опублікованого плану синхронізує організаційні поля
+конкретного тренування.
+
+## schedule_training_plan(plan_id)
+
+Переводить план у `planned`, створює або оновлює одну неактивну training-запис
+на вибраний день. Повторний виклик не створює дублікат.
+
+## sync_training_event_from_plan(plan_id)
+
+Оновлює title, date/time, location і team у вже пов’язаному тренуванні. Для
+`planned` plan може створити відсутню неактивну подію.
+
+## publish_training_plan(plan_id)
+
+Активує ту саму training-запис, синхронізує `training_id`, `published_at`,
+`published_by` і створює Push outbox event. Нова публікація не створює дублікат.
+
+## update_training_event_with_plan(training_id, title, starts_at, location, team_name)
+
+Редагує організаційні поля у розділі «Тренування» та синхронізує дату, час,
+місце й команду назад у Training Plan. Назва linked event береться з плану.
+
+## activate_training_with_plan(training_id) / deactivate_training_with_plan(training_id)
+
+Публікує або знімає з публікації конкретне тренування. Для linked plan статус
+синхронізується як `published` або `planned`.
+
+## cancel / restore / complete
+
+`cancel_training_plan`, `cancel_training_with_plan`,
+`restore_cancelled_training_plan`, `restore_training_with_plan`,
+`complete_training_plan` і `complete_training_with_plan` синхронізують lifecycle
+в обох напрямках, не видаляючи Attendance. Якщо скасоване активне тренування
+відновлюється, воно знову активується та може відправити Push.
+
+## delete_training_plan_with_training(...) / delete_training_with_plan(...)
+
+Перший видаляє план разом із пов’язаним тренуванням за правилами lifecycle.
+Другий видаляє тільки training event, зберігаючи linked plan як `planned`.
+
+### Міграції
+
+- `sql/2026-08-03-training-publish-flow.sql`
+- `sql/2026-08-04-plan-training-integration-ux-completion.sql`

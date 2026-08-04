@@ -5,6 +5,8 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
+import { sendTrainingNotification } from "./training-notification-service";
+
 type TrainingStatus = "scheduled" | "cancelled" | "completed";
 
 type TrainingRow = {
@@ -12,6 +14,7 @@ type TrainingRow = {
   title: string;
   starts_at: string;
   location: string;
+  team_name: string | null;
   is_active: boolean;
   status: TrainingStatus;
   cancellation_reason: string | null;
@@ -23,13 +26,26 @@ type AttendanceRow = {
   training_id: string;
 };
 
+type LinkedPlanSummary = {
+  id: string;
+  title: string;
+  objective: string | null;
+  planned_duration: number;
+  status: string;
+  team_name: string | null;
+  training_id: string;
+  training_plan_blocks: { id: string }[];
+};
+
 type TrainingForm = {
   id: string | null;
   title: string;
   date: string;
   time: string;
   location: string;
+  teamName: string;
   activateAfterSaving: boolean;
+  linkedPlanId: string | null;
 };
 
 const emptyTrainingForm: TrainingForm = {
@@ -38,7 +54,9 @@ const emptyTrainingForm: TrainingForm = {
   date: "",
   time: "19:00",
   location: "ФОК Олімп",
+  teamName: "Дорослі",
   activateAfterSaving: false,
+  linkedPlanId: null,
 };
 
 function getDateInputValue(isoDate: string) {
@@ -90,6 +108,49 @@ function getStatusLabel(status: TrainingStatus) {
   return "Заплановано";
 }
 
+function getPlanStatusLabel(status: string) {
+  if (status === "published") return "Опубліковано";
+  if (status === "completed") return "Завершено";
+  if (status === "cancelled") return "Скасовано";
+  if (status === "planned") return "Заплановано";
+  return "Чернетка";
+}
+
+function LinkedPlanSummaryCard({ plan }: { plan: LinkedPlanSummary }) {
+  return (
+    <div className="mt-5 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-700">
+          Пов’язаний план тренування
+        </p>
+        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-sky-700">
+          {getPlanStatusLabel(plan.status)}
+        </span>
+      </div>
+      <p className="mt-3 font-black">{plan.title}</p>
+      {plan.objective ? (
+        <p className="mt-2 text-sm leading-6 text-slate-600">{plan.objective}</p>
+      ) : null}
+      <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-slate-600">
+        <span className="rounded-full bg-white px-3 py-1">
+          {plan.planned_duration} хв
+        </span>
+        <span className="rounded-full bg-white px-3 py-1">
+          {plan.training_plan_blocks.length} блоків
+        </span>
+        {plan.team_name ? (
+          <span className="rounded-full bg-white px-3 py-1">
+            {plan.team_name}
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-3 text-xs leading-5 text-slate-500">
+        Вправи, порядок блоків і тренерські нотатки редагуються у конструкторі плану.
+      </p>
+    </div>
+  );
+}
+
 export default function AdminTrainingsPage() {
   const router = useRouter();
 
@@ -99,6 +160,10 @@ export default function AdminTrainingsPage() {
 
   const [attendanceCounts, setAttendanceCounts] = useState<
     Record<string, number>
+  >({});
+
+  const [linkedPlansByTrainingId, setLinkedPlansByTrainingId] = useState<
+    Record<string, LinkedPlanSummary>
   >({});
 
   const [form, setForm] = useState<TrainingForm>(emptyTrainingForm);
@@ -127,7 +192,7 @@ export default function AdminTrainingsPage() {
     const { data: trainingData, error: trainingError } = await supabase
       .from("trainings")
       .select(
-        "id, title, starts_at, location, is_active, status, cancellation_reason, created_at, updated_at",
+        "id, title, starts_at, location, team_name, is_active, status, cancellation_reason, created_at, updated_at",
       )
       .order("starts_at", {
         ascending: false,
@@ -142,14 +207,28 @@ export default function AdminTrainingsPage() {
       return;
     }
 
-    const { data: attendanceData, error: attendanceError } = await supabase
-      .from("training_attendance")
-      .select("training_id");
+    const [
+      { data: attendanceData, error: attendanceError },
+      { data: planData, error: planError },
+    ] = await Promise.all([
+      supabase.from("training_attendance").select("training_id"),
+      supabase
+        .from("training_plans")
+        .select(
+          "id, title, objective, planned_duration, status, team_name, training_id, training_plan_blocks(id)",
+        )
+        .not("training_id", "is", null),
+    ]);
 
-    if (attendanceError) {
-      console.error("Attendance counts loading error:", attendanceError);
+    if (attendanceError || planError) {
+      console.error("Training relations loading error:", {
+        attendanceError,
+        planError,
+      });
 
-      setMessage("Не вдалося завантажити статистику відповідей.");
+      setMessage(
+        "Не вдалося завантажити статистику або пов’язані плани тренувань.",
+      );
       setMessageType("error");
       setIsLoading(false);
       return;
@@ -163,8 +242,18 @@ export default function AdminTrainingsPage() {
       return result;
     }, {});
 
+    const linkedPlans = ((planData ?? []) as LinkedPlanSummary[]).reduce<
+      Record<string, LinkedPlanSummary>
+    >((result, plan) => {
+      if (plan.training_id) {
+        result[plan.training_id] = plan;
+      }
+      return result;
+    }, {});
+
     setTrainings((trainingData ?? []) as TrainingRow[]);
     setAttendanceCounts(counts);
+    setLinkedPlansByTrainingId(linkedPlans);
     setIsLoading(false);
   }
 
@@ -225,6 +314,28 @@ export default function AdminTrainingsPage() {
           void loadAdminData();
         },
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "training_plans",
+        },
+        () => {
+          void loadAdminData();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "training_plan_blocks",
+        },
+        () => {
+          void loadAdminData();
+        },
+      )
       .subscribe();
 
     return () => {
@@ -249,6 +360,22 @@ export default function AdminTrainingsPage() {
     [attendanceCounts],
   );
 
+  useEffect(() => {
+    if (isLoading || typeof window === "undefined") return;
+
+    const targetId = window.location.hash.slice(1);
+    if (!targetId.startsWith("training-")) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      document.getElementById(targetId)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [isLoading, trainings]);
+
   function openCreateForm() {
     setForm(emptyTrainingForm);
     setIsEditorOpen(true);
@@ -257,13 +384,17 @@ export default function AdminTrainingsPage() {
   }
 
   function openEditForm(training: TrainingRow) {
+    const linkedPlan = linkedPlansByTrainingId[training.id] ?? null;
+
     setForm({
       id: training.id,
-      title: training.title,
+      title: linkedPlan?.title ?? training.title,
       date: getDateInputValue(training.starts_at),
       time: getTimeInputValue(training.starts_at),
       location: training.location,
+      teamName: training.team_name ?? linkedPlan?.team_name ?? "",
       activateAfterSaving: training.is_active,
+      linkedPlanId: linkedPlan?.id ?? null,
     });
 
     setIsEditorOpen(true);
@@ -285,39 +416,91 @@ export default function AdminTrainingsPage() {
     setForm(emptyTrainingForm);
   }
 
+  async function trySendNotification(
+    trainingId: string,
+    eventType: "published" | "updated" | "cancelled" | "restored",
+    context?: {
+      previousStartsAt?: string | null;
+      previousLocation?: string | null;
+      previousTeamName?: string | null;
+    },
+  ) {
+    try {
+      await sendTrainingNotification(trainingId, eventType, context);
+      return "";
+    } catch (error) {
+      console.error("Training Push notification error:", error);
+      return " Дані збережено, але Push-сповіщення не надіслано.";
+    }
+  }
+
   async function activateTraining(trainingId: string) {
     setProcessingTrainingId(trainingId);
     setMessage("");
     setMessageType("");
 
-    const { error } = await supabase.rpc("activate_training", {
-      target_training_id: trainingId,
-    });
+    try {
+      const { error } = await supabase.rpc("activate_training_with_plan", {
+        p_training_id: trainingId,
+      });
 
-    if (error) {
+      if (error) throw error;
+
+      const pushWarning = await trySendNotification(trainingId, "published");
+      setMessage(`Тренування успішно активовано.${pushWarning}`);
+      setMessageType("success");
+      await loadAdminData();
+    } catch (error) {
       console.error("Training activation error:", error);
-
-      setMessage("Не вдалося активувати тренування.");
+      setMessage(
+        "Не вдалося активувати тренування. Перевірте SQL-міграцію Sprint 05.2.1.",
+      );
       setMessageType("error");
+    } finally {
       setProcessingTrainingId(null);
-      return;
     }
+  }
 
-    setMessage("Тренування успішно активовано.");
-    setMessageType("success");
+  async function deactivateTraining(trainingId: string) {
+    setProcessingTrainingId(trainingId);
+    setMessage("");
+    setMessageType("");
 
-    await loadAdminData();
-    setProcessingTrainingId(null);
+    try {
+      const { error } = await supabase.rpc("deactivate_training_with_plan", {
+        p_training_id: trainingId,
+      });
+
+      if (error) throw error;
+
+      setMessage(
+        "Тренування знято з публікації. Подія та відвідуваність збережені.",
+      );
+      setMessageType("success");
+      await loadAdminData();
+    } catch (error) {
+      console.error("Training deactivation error:", error);
+      setMessage("Не вдалося зняти тренування з публікації.");
+      setMessageType("error");
+    } finally {
+      setProcessingTrainingId(null);
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const normalizedTitle = form.title.trim();
-
     const normalizedLocation = form.location.trim();
+    const normalizedTeamName = form.teamName.trim();
 
-    if (!normalizedTitle || !form.date || !form.time || !normalizedLocation) {
+    if (
+      !normalizedTitle ||
+      !form.date ||
+      !form.time ||
+      !normalizedLocation ||
+      !normalizedTeamName
+    ) {
       setMessage("Заповніть усі обов’язкові поля.");
       setMessageType("error");
       return;
@@ -337,19 +520,47 @@ export default function AdminTrainingsPage() {
 
     try {
       let savedTrainingId = form.id;
+      let shouldNotifyUpdate = false;
+      let shouldNotifyPublication = false;
 
       if (form.id) {
-        const { error } = await supabase
-          .from("trainings")
-          .update({
-            title: normalizedTitle,
-            starts_at: startsAt.toISOString(),
-            location: normalizedLocation,
-          })
-          .eq("id", form.id);
+        const existingTraining = trainings.find(
+          (training) => training.id === form.id,
+        );
 
-        if (error) {
-          throw error;
+        const { data, error } = await supabase.rpc(
+          "update_training_event_with_plan",
+          {
+            p_training_id: form.id,
+            p_title: normalizedTitle,
+            p_starts_at: startsAt.toISOString(),
+            p_location: normalizedLocation,
+            p_team_name: normalizedTeamName,
+          },
+        );
+
+        if (error) throw error;
+
+        const result = data as { notify?: boolean } | null;
+        shouldNotifyUpdate = Boolean(result?.notify);
+
+        if (form.activateAfterSaving && !existingTraining?.is_active) {
+          const { error: activationError } = await supabase.rpc(
+            "activate_training_with_plan",
+            { p_training_id: form.id },
+          );
+
+          if (activationError) throw activationError;
+          shouldNotifyPublication = true;
+          shouldNotifyUpdate = false;
+        } else if (!form.activateAfterSaving && existingTraining?.is_active) {
+          const { error: deactivationError } = await supabase.rpc(
+            "deactivate_training_with_plan",
+            { p_training_id: form.id },
+          );
+
+          if (deactivationError) throw deactivationError;
+          shouldNotifyUpdate = false;
         }
       } else {
         const { data, error } = await supabase
@@ -358,6 +569,7 @@ export default function AdminTrainingsPage() {
             title: normalizedTitle,
             starts_at: startsAt.toISOString(),
             location: normalizedLocation,
+            team_name: normalizedTeamName,
             is_active: false,
             status: "scheduled",
             cancellation_reason: null,
@@ -365,29 +577,42 @@ export default function AdminTrainingsPage() {
           .select("id")
           .single();
 
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
 
         savedTrainingId = data.id;
+
+        if (form.activateAfterSaving) {
+          const { error: activationError } = await supabase.rpc(
+            "activate_training_with_plan",
+            { p_training_id: savedTrainingId },
+          );
+
+          if (activationError) throw activationError;
+          shouldNotifyPublication = true;
+        }
       }
 
-      if (form.activateAfterSaving && savedTrainingId) {
-        const { error } = await supabase.rpc("activate_training", {
-          target_training_id: savedTrainingId,
-        });
+      let pushWarning = "";
 
-        if (error) {
-          throw error;
-        }
+      if (savedTrainingId && shouldNotifyPublication) {
+        pushWarning = await trySendNotification(
+          savedTrainingId,
+          "published",
+        );
+      } else if (savedTrainingId && shouldNotifyUpdate) {
+        const existingTraining = trainings.find(
+          (training) => training.id === savedTrainingId,
+        );
+        pushWarning = await trySendNotification(savedTrainingId, "updated", {
+          previousStartsAt: existingTraining?.starts_at ?? null,
+          previousLocation: existingTraining?.location ?? null,
+          previousTeamName: existingTraining?.team_name ?? null,
+        });
       }
 
       setMessage(
-        form.id
-          ? "Тренування успішно оновлено."
-          : "Нове тренування успішно створено.",
+        `${form.id ? "Тренування успішно оновлено." : "Нове тренування успішно створено."}${pushWarning}`,
       );
-
       setMessageType("success");
       setIsEditorOpen(false);
       setForm(emptyTrainingForm);
@@ -395,8 +620,9 @@ export default function AdminTrainingsPage() {
       await loadAdminData();
     } catch (error) {
       console.error("Training saving error:", error);
-
-      setMessage("Не вдалося зберегти тренування. Перевірте введені дані.");
+      setMessage(
+        "Не вдалося зберегти тренування. Перевірте введені дані та SQL-міграцію Sprint 05.2.1.",
+      );
       setMessageType("error");
     } finally {
       setIsSaving(false);
@@ -409,9 +635,7 @@ export default function AdminTrainingsPage() {
       training.cancellation_reason ?? "",
     );
 
-    if (reason === null) {
-      return;
-    }
+    if (reason === null) return;
 
     const normalizedReason = reason.trim();
 
@@ -421,11 +645,11 @@ export default function AdminTrainingsPage() {
       return;
     }
 
-    const isConfirmed = window.confirm(
-      `Скасувати тренування «${training.title}»?\n\nПричина: ${normalizedReason}`,
-    );
-
-    if (!isConfirmed) {
+    if (
+      !window.confirm(
+        `Скасувати тренування «${training.title}»?\n\nПричина: ${normalizedReason}`,
+      )
+    ) {
       return;
     }
 
@@ -433,75 +657,77 @@ export default function AdminTrainingsPage() {
     setMessage("");
     setMessageType("");
 
-    const { error } = await supabase
-      .from("trainings")
-      .update({
-        status: "cancelled",
-        is_active: false,
-        cancellation_reason: normalizedReason,
-      })
-      .eq("id", training.id);
+    try {
+      const { data, error } = await supabase.rpc(
+        "cancel_training_with_plan",
+        {
+          p_training_id: training.id,
+          p_reason: normalizedReason,
+        },
+      );
 
-    if (error) {
+      if (error) throw error;
+
+      const result = data as { notify?: boolean } | null;
+      const pushWarning = result?.notify
+        ? await trySendNotification(training.id, "cancelled")
+        : "";
+
+      setMessage(
+        `Тренування скасовано. Відповіді учасників збережено.${pushWarning}`,
+      );
+      setMessageType("success");
+      await loadAdminData();
+    } catch (error) {
       console.error("Training cancellation error:", error);
-
       setMessage("Не вдалося скасувати тренування.");
       setMessageType("error");
+    } finally {
       setProcessingTrainingId(null);
-      return;
     }
-
-    setMessage("Тренування скасовано. Відповіді учасників збережено.");
-    setMessageType("success");
-
-    await loadAdminData();
-    setProcessingTrainingId(null);
   }
 
   async function restoreTraining(training: TrainingRow) {
-    const isConfirmed = window.confirm(
-      `Відновити тренування «${training.title}»?`,
-    );
-
-    if (!isConfirmed) {
-      return;
-    }
+    if (!window.confirm(`Відновити тренування «${training.title}»?`)) return;
 
     setProcessingTrainingId(training.id);
     setMessage("");
     setMessageType("");
 
-    const { error } = await supabase
-      .from("trainings")
-      .update({
-        status: "scheduled",
-        is_active: false,
-        cancellation_reason: null,
-      })
-      .eq("id", training.id);
+    try {
+      const { data, error } = await supabase.rpc("restore_training_with_plan", {
+        p_training_id: training.id,
+      });
 
-    if (error) {
+      if (error) throw error;
+
+      const result = data as { notify?: boolean } | null;
+      const pushWarning = result?.notify
+        ? await trySendNotification(training.id, "restored")
+        : "";
+
+      setMessage(
+        result?.notify
+          ? `Тренування відновлено та знову активовано для гравців.${pushWarning}`
+          : "Тренування відновлено як заплановане. Для гравців активуйте його повторно.",
+      );
+      setMessageType("success");
+      await loadAdminData();
+    } catch (error) {
       console.error("Training restoration error:", error);
-
       setMessage("Не вдалося відновити тренування.");
       setMessageType("error");
+    } finally {
       setProcessingTrainingId(null);
-      return;
     }
-
-    setMessage("Тренування відновлено.");
-    setMessageType("success");
-
-    await loadAdminData();
-    setProcessingTrainingId(null);
   }
 
   async function completeTraining(training: TrainingRow) {
-    const isConfirmed = window.confirm(
-      `Завершити тренування «${training.title}»?\n\nПісля завершення голосування буде закрито, але відвідуваність і відповіді учасників збережуться.`,
-    );
-
-    if (!isConfirmed) {
+    if (
+      !window.confirm(
+        `Завершити тренування «${training.title}»?\n\nПісля завершення голосування буде закрито, але відвідуваність і відповіді учасників збережуться.`,
+      )
+    ) {
       return;
     }
 
@@ -509,79 +735,74 @@ export default function AdminTrainingsPage() {
     setMessage("");
     setMessageType("");
 
-    const { error } = await supabase
-      .from("trainings")
-      .update({
-        status: "completed",
-        is_active: false,
-        cancellation_reason: null,
-      })
-      .eq("id", training.id);
+    try {
+      const { error } = await supabase.rpc("complete_training_with_plan", {
+        p_training_id: training.id,
+      });
 
-    if (error) {
+      if (error) throw error;
+
+      if (form.id === training.id) {
+        setIsEditorOpen(false);
+        setForm(emptyTrainingForm);
+      }
+
+      setMessage(
+        "Тренування завершено. Голосування закрито, дані відвідуваності збережено.",
+      );
+      setMessageType("success");
+      await loadAdminData();
+    } catch (error) {
       console.error("Training completion error:", error);
-
       setMessage("Не вдалося завершити тренування.");
       setMessageType("error");
+    } finally {
       setProcessingTrainingId(null);
-      return;
     }
-
-    if (form.id === training.id) {
-      setIsEditorOpen(false);
-      setForm(emptyTrainingForm);
-    }
-
-    setMessage(
-      "Тренування завершено. Голосування закрито, дані відвідуваності збережено.",
-    );
-    setMessageType("success");
-
-    await loadAdminData();
-    setProcessingTrainingId(null);
   }
 
   async function deleteTraining(training: TrainingRow) {
     const answersCount = attendanceCounts[training.id] ?? 0;
-
+    const linkedPlan = linkedPlansByTrainingId[training.id];
     const confirmationText = answersCount
       ? `Видалити тренування «${training.title}» та ${answersCount} пов’язаних відповідей?`
       : `Видалити тренування «${training.title}»?`;
+    const planNotice = linkedPlan
+      ? "\n\nПов’язаний план буде збережено та повернено до статусу «Заплановано»."
+      : "";
 
-    const isConfirmed = window.confirm(confirmationText);
-
-    if (!isConfirmed) {
-      return;
-    }
+    if (!window.confirm(`${confirmationText}${planNotice}`)) return;
 
     setProcessingTrainingId(training.id);
     setMessage("");
     setMessageType("");
 
-    const { error } = await supabase
-      .from("trainings")
-      .delete()
-      .eq("id", training.id);
+    try {
+      const { error } = await supabase.rpc("delete_training_with_plan", {
+        p_training_id: training.id,
+      });
 
-    if (error) {
+      if (error) throw error;
+
+      if (form.id === training.id) {
+        setIsEditorOpen(false);
+        setForm(emptyTrainingForm);
+      }
+
+      setMessage(
+        linkedPlan
+          ? "Тренування видалено. Пов’язаний план збережено як запланований."
+          : "Тренування видалено.",
+      );
+      setMessageType("success");
+      await loadAdminData();
+    } catch (error) {
       console.error("Training deletion error:", error);
-
       setMessage("Не вдалося видалити тренування.");
       setMessageType("error");
+    } finally {
       setProcessingTrainingId(null);
-      return;
     }
-
-    if (form.id === training.id) {
-      setIsEditorOpen(false);
-      setForm(emptyTrainingForm);
-    }
-
-    setMessage("Тренування видалено.");
-    setMessageType("success");
-
-    await loadAdminData();
-    setProcessingTrainingId(null);
   }
 
   async function handleLogout() {
@@ -698,6 +919,23 @@ export default function AdminTrainingsPage() {
               </button>
             </div>
 
+            {form.linkedPlanId ? (
+              <div className="mt-6 rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm leading-6 text-slate-700">
+                <p className="font-black text-sky-800">
+                  Це тренування пов’язане з планом.
+                </p>
+                <p className="mt-1">
+                  Тут змінюються дата, час, місце та команда. Назва, вправи, порядок блоків і тренерські нотатки редагуються у Training Builder.
+                </p>
+                <Link
+                  href={`/admin/coach/training-plans/${form.linkedPlanId}`}
+                  className="mt-3 inline-flex font-black text-sky-700 transition hover:text-sky-900"
+                >
+                  Відкрити план тренування →
+                </Link>
+              </div>
+            ) : null}
+
             <form onSubmit={handleSubmit} className="mt-8">
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="md:col-span-2">
@@ -719,7 +957,8 @@ export default function AdminTrainingsPage() {
                       })
                     }
                     maxLength={100}
-                    className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                    disabled={Boolean(form.linkedPlanId)}
+                    className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                   />
                 </div>
 
@@ -767,7 +1006,7 @@ export default function AdminTrainingsPage() {
                   />
                 </div>
 
-                <div className="md:col-span-2">
+                <div>
                   <label
                     htmlFor="training-location"
                     className="text-sm font-black uppercase tracking-[0.16em] text-slate-600"
@@ -790,13 +1029,42 @@ export default function AdminTrainingsPage() {
                   />
                 </div>
 
+                <div>
+                  <label
+                    htmlFor="training-team"
+                    className="text-sm font-black uppercase tracking-[0.16em] text-slate-600"
+                  >
+                    Команда
+                  </label>
+
+                  <input
+                    id="training-team"
+                    type="text"
+                    value={form.teamName}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        teamName: event.target.value,
+                      })
+                    }
+                    maxLength={100}
+                    placeholder="Наприклад: Дорослі"
+                    className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                  />
+                </div>
+
                 <label className="md:col-span-2 flex cursor-pointer items-center justify-between gap-5 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
                   <span>
-                    <span className="block font-black">Зробити активним</span>
+                    <span className="block font-black">
+                      {form.linkedPlanId
+                        ? "Опублікувати для гравців"
+                        : "Зробити активним"}
+                    </span>
 
                     <span className="mt-1 block text-sm text-slate-500">
-                      Після збереження ця подія відображатиметься на сторінці
-                      тренування.
+                      Увімкнений перемикач робить подію доступною на сторінці
+                      тренування. Вимкнення знімає її з публікації, але не
+                      видаляє подію та відвідуваність.
                     </span>
                   </span>
 
@@ -902,6 +1170,12 @@ export default function AdminTrainingsPage() {
                   {formatTrainingTime(activeTraining.starts_at)}
                   {" · "}
                   {activeTraining.location}
+                  {activeTraining.team_name ? (
+                    <>
+                      {" · "}
+                      {activeTraining.team_name}
+                    </>
+                  ) : null}
                 </p>
 
                 {activeTraining.status === "cancelled" &&
@@ -914,6 +1188,14 @@ export default function AdminTrainingsPage() {
                 <p className="mt-3 text-sm text-slate-400">
                   Уже відповіли: {attendanceCounts[activeTraining.id] ?? 0}
                 </p>
+
+                {linkedPlansByTrainingId[activeTraining.id] ? (
+                  <div className="max-w-xl">
+                    <LinkedPlanSummaryCard
+                      plan={linkedPlansByTrainingId[activeTraining.id]}
+                    />
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex flex-wrap gap-3">
@@ -924,6 +1206,15 @@ export default function AdminTrainingsPage() {
                 >
                   Редагувати
                 </button>
+
+                {linkedPlansByTrainingId[activeTraining.id] ? (
+                  <Link
+                    href={`/admin/coach/training-plans/${linkedPlansByTrainingId[activeTraining.id].id}`}
+                    className="inline-flex min-h-12 items-center justify-center rounded-full border border-sky-300/40 px-6 py-3 font-black text-sky-200 transition hover:bg-sky-400/10"
+                  >
+                    Відкрити план
+                  </Link>
+                ) : null}
 
                 {activeTraining.status === "scheduled" && (
                   <button
@@ -946,10 +1237,13 @@ export default function AdminTrainingsPage() {
           <div className="flex items-end justify-between gap-5">
             <div>
               <p className="text-sm font-black uppercase tracking-[0.22em] text-sky-600">
-                Календар
+                Розклад
               </p>
 
               <h2 className="mt-2 text-3xl font-black">Усі тренування</h2>
+              <p className="mt-2 text-sm text-slate-500">
+                Загальний клубний календар із матчами, турнірами та іншими подіями буде окремим модулем.
+              </p>
             </div>
 
             <button
@@ -965,11 +1259,13 @@ export default function AdminTrainingsPage() {
             <div className="mt-6 grid gap-5 lg:grid-cols-2">
               {trainings.map((training) => {
                 const isProcessing = processingTrainingId === training.id;
+                const linkedPlan = linkedPlansByTrainingId[training.id] ?? null;
 
                 return (
                   <article
+                    id={`training-${training.id}`}
                     key={training.id}
-                    className={`rounded-3xl border bg-white p-6 shadow-sm ${
+                    className={`rounded-3xl border bg-white p-6 shadow-sm transition target:border-violet-400 target:ring-4 target:ring-violet-100 ${
                       training.status === "cancelled"
                         ? "border-red-300 ring-4 ring-red-100"
                         : training.is_active
@@ -1013,6 +1309,12 @@ export default function AdminTrainingsPage() {
                           {formatTrainingTime(training.starts_at)}
                           {" · "}
                           {training.location}
+                          {training.team_name ? (
+                            <>
+                              <br />
+                              Команда: {training.team_name}
+                            </>
+                          ) : null}
                         </p>
 
                         {training.status === "cancelled" &&
@@ -1021,6 +1323,10 @@ export default function AdminTrainingsPage() {
                               Причина скасування: {training.cancellation_reason}
                             </p>
                           )}
+
+                        {linkedPlan ? (
+                          <LinkedPlanSummaryCard plan={linkedPlan} />
+                        ) : null}
                       </div>
                     </div>
 
@@ -1034,6 +1340,24 @@ export default function AdminTrainingsPage() {
                         Редагувати
                       </button>
 
+                      {linkedPlan ? (
+                        <Link
+                          href={`/admin/coach/training-plans/${linkedPlan.id}`}
+                          className="inline-flex min-h-10 items-center justify-center rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-black text-sky-800 transition hover:bg-sky-100"
+                        >
+                          Відкрити план
+                        </Link>
+                      ) : null}
+
+                      {linkedPlan ? (
+                        <Link
+                          href={`/admin/attendance/${training.id}`}
+                          className="inline-flex min-h-10 items-center justify-center rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-black text-violet-800 transition hover:bg-violet-100"
+                        >
+                          Відвідуваність
+                        </Link>
+                      ) : null}
+
                       {!training.is_active &&
                         training.status === "scheduled" && (
                           <button
@@ -1043,6 +1367,20 @@ export default function AdminTrainingsPage() {
                             className="inline-flex min-h-10 items-center justify-center rounded-full bg-sky-100 px-4 py-2 text-sm font-black text-sky-800 transition hover:bg-sky-200 disabled:opacity-50"
                           >
                             {isProcessing ? "Обробка..." : "Зробити активною"}
+                          </button>
+                        )}
+
+                      {training.is_active &&
+                        training.status === "scheduled" && (
+                          <button
+                            type="button"
+                            onClick={() => void deactivateTraining(training.id)}
+                            disabled={isProcessing}
+                            className="inline-flex min-h-10 items-center justify-center rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+                          >
+                            {isProcessing
+                              ? "Обробка..."
+                              : "Зняти з публікації"}
                           </button>
                         )}
 

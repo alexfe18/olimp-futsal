@@ -17,6 +17,7 @@ export const statusOptions: ReadonlyArray<{
 }> = [
   { value: "draft", label: "Чернетка" },
   { value: "planned", label: "Заплановано" },
+  { value: "published", label: "Опубліковано" },
   { value: "in_progress", label: "Триває" },
   { value: "completed", label: "Завершено" },
   { value: "cancelled", label: "Скасовано" },
@@ -52,6 +53,7 @@ export const intensityOptions: ReadonlyArray<{
 export const statusLabels: Record<TrainingPlanStatus, string> = {
   draft: "Чернетка",
   planned: "Заплановано",
+  published: "Опубліковано",
   in_progress: "Триває",
   completed: "Завершено",
   cancelled: "Скасовано",
@@ -67,6 +69,7 @@ export const intensityLabels: Record<TrainingPlanIntensity, string> = {
 export const statusClasses: Record<TrainingPlanStatus, string> = {
   draft: "bg-slate-100 text-slate-700",
   planned: "bg-sky-100 text-sky-700",
+  published: "bg-cyan-100 text-cyan-800",
   in_progress: "bg-amber-100 text-amber-800",
   completed: "bg-emerald-100 text-emerald-700",
   cancelled: "bg-rose-100 text-rose-700",

@@ -13,6 +13,7 @@ import {
 } from "./components/options";
 import {
   createTrainingTemplateFromPlan,
+  deleteTrainingPlanWithTraining,
   duplicateTrainingPlan,
 } from "./components/training-plan-service";
 import type {
@@ -23,6 +24,7 @@ import type {
 
 type StatusFilter = "all" | TrainingPlanStatus;
 type IntensityFilter = "all" | TrainingPlanIntensity;
+type DateFilter = "all" | "upcoming" | "past" | "without_date";
 
 function formatDate(value: string | null) {
   if (!value) return "Дата не вказана";
@@ -33,6 +35,12 @@ function formatDate(value: string | null) {
     year: "numeric",
     timeZone: "Europe/Kyiv",
   }).format(new Date(`${value}T12:00:00`));
+}
+
+
+function formatTime(value: string | null) {
+  if (!value) return "Час не вказано";
+  return value.slice(0, 5);
 }
 
 function formatUpdatedAt(value: string) {
@@ -52,6 +60,7 @@ export default function TrainingPlansPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [intensityFilter, setIntensityFilter] =
     useState<IntensityFilter>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
@@ -71,6 +80,13 @@ export default function TrainingPlansPage() {
           id,
           title,
           session_date,
+          session_time,
+          location,
+          training_id,
+          published_at,
+          unpublished_at,
+          cancelled_at,
+          cancellation_reason,
           team_name,
           age_group,
           objective,
@@ -94,8 +110,10 @@ export default function TrainingPlansPage() {
       const normalized = error.message.toLocaleLowerCase("en-US");
       setErrorMessage(
         normalized.includes("session_date") ||
+          normalized.includes("session_time") ||
+          normalized.includes("training_plan_events") ||
           normalized.includes("exercise_id")
-          ? "Список не завантажено. Виконайте актуальну SQL-міграцію Training Builder."
+          ? "Список не завантажено. Виконайте SQL-міграцію Sprint 05.2 Training Publish Flow."
           : `Не вдалося завантажити плани тренувань. ${error.message}`,
       );
       setPlans([]);
@@ -129,18 +147,27 @@ export default function TrainingPlansPage() {
           .toLocaleLowerCase("uk-UA")
           .includes(query);
 
+      const today = new Date().toISOString().slice(0, 10);
+      const matchesDate =
+        dateFilter === "all" ||
+        (dateFilter === "without_date" && !plan.session_date) ||
+        (dateFilter === "upcoming" && Boolean(plan.session_date) && plan.session_date! >= today) ||
+        (dateFilter === "past" && Boolean(plan.session_date) && plan.session_date! < today);
+
       return (
         matchesSearch &&
+        matchesDate &&
         (statusFilter === "all" || plan.status === statusFilter) &&
         (intensityFilter === "all" || plan.intensity === intensityFilter)
       );
     });
-  }, [intensityFilter, plans, search, statusFilter]);
+  }, [dateFilter, intensityFilter, plans, search, statusFilter]);
 
   const statistics = useMemo(() => {
     return {
       total: plans.length,
       drafts: plans.filter((plan) => plan.status === "draft").length,
+      published: plans.filter((plan) => plan.status === "published").length,
       exercises: plans.reduce(
         (sum, plan) =>
           sum +
@@ -156,24 +183,44 @@ export default function TrainingPlansPage() {
   }, [plans]);
 
   async function handleDelete(plan: TrainingPlanListRow) {
-    if (!window.confirm(`Видалити план «${plan.title}»?`)) return;
+    if (["published", "in_progress"].includes(plan.status)) {
+      setErrorMessage(
+        "Опублікований план не можна видалити зі списку. Відкрийте його та спочатку зніміть з публікації або скасуйте.",
+      );
+      return;
+    }
+
+    let confirmationTitle: string | null = null;
+    if (plan.status === "completed") {
+      confirmationTitle = window.prompt(
+        "Для видалення завершеного тренування введіть його точну назву:",
+        "",
+      );
+      if (confirmationTitle === null) return;
+      if (confirmationTitle !== plan.title) {
+        setErrorMessage("Назва не збігається. План не видалено.");
+        return;
+      }
+    } else if (
+      !window.confirm(
+        `Видалити план «${plan.title}» разом із пов’язаним тренуванням і відвідуваністю?`,
+      )
+    ) {
+      return;
+    }
 
     setDeletingId(plan.id);
     setErrorMessage(null);
 
-    const { error } = await supabase
-      .from("training_plans")
-      .delete()
-      .eq("id", plan.id);
-
-    if (error) {
-      setErrorMessage(`Не вдалося видалити план. ${error.message}`);
+    try {
+      await deleteTrainingPlanWithTraining(plan.id, confirmationTitle);
+      setPlans((current) => current.filter((item) => item.id !== plan.id));
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
+      setErrorMessage(`Не вдалося видалити план. ${text}`);
+    } finally {
       setDeletingId(null);
-      return;
     }
-
-    setPlans((current) => current.filter((item) => item.id !== plan.id));
-    setDeletingId(null);
   }
 
   async function handleDuplicate(plan: TrainingPlanListRow) {
@@ -248,12 +295,14 @@ export default function TrainingPlansPage() {
     setSearch("");
     setStatusFilter("all");
     setIntensityFilter("all");
+    setDateFilter("all");
   }
 
   const hasFilters =
     search.trim() !== "" ||
     statusFilter !== "all" ||
-    intensityFilter !== "all";
+    intensityFilter !== "all" ||
+    dateFilter !== "all";
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
@@ -294,7 +343,7 @@ export default function TrainingPlansPage() {
         <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatisticCard label="Усього планів" value={statistics.total} />
           <StatisticCard label="Чернетки" value={statistics.drafts} />
-          <StatisticCard label="Додано блоків" value={statistics.exercises} />
+          <StatisticCard label="Опубліковано" value={statistics.published} />
           <StatisticCard
             label="Загальний час"
             value={statistics.minutes}
@@ -327,7 +376,7 @@ export default function TrainingPlansPage() {
         ) : null}
 
         <section className="mt-6 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_190px_190px_190px_auto]">
             <label>
               <span className="sr-only">Пошук</span>
               <input
@@ -372,6 +421,22 @@ export default function TrainingPlansPage() {
                     {label}
                   </option>
                 ))}
+              </select>
+            </label>
+
+            <label>
+              <span className="sr-only">Дата</span>
+              <select
+                value={dateFilter}
+                onChange={(event) =>
+                  setDateFilter(event.target.value as DateFilter)
+                }
+                className="min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 font-semibold outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+              >
+                <option value="all">Усі дати</option>
+                <option value="upcoming">Майбутні</option>
+                <option value="past">Минулі</option>
+                <option value="without_date">Без дати</option>
               </select>
             </label>
 
@@ -501,7 +566,7 @@ function PlanCard({
       </div>
 
       <p className="mt-5 text-xs font-black uppercase tracking-[0.16em] text-sky-600">
-        {formatDate(plan.session_date)}
+        {formatDate(plan.session_date)} · {formatTime(plan.session_time)}
       </p>
       <h2 className="mt-2 text-2xl font-black leading-tight text-slate-950">
         {plan.title}
@@ -519,6 +584,18 @@ function PlanCard({
         </span>
       </div>
 
+      {plan.location ? (
+        <p className="mt-3 text-sm font-bold text-slate-500">
+          📍 {plan.location}
+        </p>
+      ) : null}
+
+      {plan.cancellation_reason ? (
+        <p className="mt-3 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+          Причина: {plan.cancellation_reason}
+        </p>
+      ) : null}
+
       {plan.objective ? (
         <p className="mt-4 line-clamp-3 text-sm font-semibold leading-6 text-slate-500">
           {plan.objective}
@@ -533,6 +610,23 @@ function PlanCard({
         <CardMetric label="Вправ" value={String(exerciseCount)} />
         <CardMetric label="Тривалість" value={`${totalDuration} хв`} />
       </div>
+
+      {plan.training_id ? (
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Link
+            href={`/admin/trainings#training-${plan.training_id}`}
+            className="inline-flex min-h-10 items-center justify-center rounded-full border border-slate-200 px-3 text-xs font-black text-slate-700 transition hover:border-sky-300 hover:text-sky-700"
+          >
+            Пов’язане тренування
+          </Link>
+          <Link
+            href={`/admin/attendance/${plan.training_id}`}
+            className="inline-flex min-h-10 items-center justify-center rounded-full border border-slate-200 px-3 text-xs font-black text-slate-700 transition hover:border-sky-300 hover:text-sky-700"
+          >
+            Відвідуваність
+          </Link>
+        </div>
+      ) : null}
 
       <div className="mt-auto grid grid-cols-2 gap-2 border-t border-slate-100 pt-5">
         <Link
@@ -559,11 +653,25 @@ function PlanCard({
         </button>
         <button
           type="button"
-          disabled={isDeleting || isDuplicating || isTemplating}
+          disabled={
+            isDeleting ||
+            isDuplicating ||
+            isTemplating ||
+            ["published", "in_progress"].includes(plan.status)
+          }
           onClick={onDelete}
-          className="col-span-2 inline-flex min-h-11 items-center justify-center rounded-full border border-rose-200 px-4 text-sm font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+          title={
+            ["published", "in_progress"].includes(plan.status)
+              ? "Спочатку відкрийте план і зніміть його з публікації."
+              : undefined
+          }
+          className="col-span-2 inline-flex min-h-11 items-center justify-center rounded-full border border-rose-200 px-4 text-sm font-black text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {isDeleting ? "Видалення..." : "Видалити"}
+          {isDeleting
+            ? "Видалення..."
+            : ["published", "in_progress"].includes(plan.status)
+              ? "Спочатку зняти з публікації"
+              : "Видалити"}
         </button>
       </div>
     </article>

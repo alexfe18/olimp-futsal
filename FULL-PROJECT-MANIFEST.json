@@ -1,20 +1,33 @@
 {
-  "release": "Sprint 05.0.5",
+  "release": "Sprint 05.2.1 — Plan ↔ Training Integration & UX Completion",
+  "version": "0.5.2",
+  "generated_at": "2026-08-04",
+  "file_count": 397,
   "files": [
     {
       "path": ".env.example",
-      "sha256": "2e27be92fc016ff894b381ae000a3df5e382cdef2e610a7a095920a5d0dab1b7",
-      "bytes": 198
+      "sha256": "f952974fd81c4a2da4fa842f1bf8bddae8b148e170c8e5d332318557766f67b7",
+      "bytes": 241
+    },
+    {
+      "path": ".env.production.example",
+      "sha256": "540ad4189d3ef07066c8160b575cb7d1ae37629dc17f26cd7d291c6c1803971b",
+      "bytes": 250
     },
     {
       "path": ".gitignore",
-      "sha256": "5a325b3b95272af63c207a3a80285fbe21004be4505ff4eecd7af236bb4e6936",
-      "bytes": 535
+      "sha256": "ed9eb9a32e2a5b20c2c485a68021b8bd557495fb86b1b431b5d01c5544d7964d",
+      "bytes": 574
     },
     {
       "path": "AGENTS.md",
       "sha256": "e3447d84251880fb34cfae09131cb4c57471529bbfe60976a3245793cf621627",
       "bytes": 327
+    },
+    {
+      "path": "CHANGED-FILES.txt",
+      "sha256": "83a673cfa50118adad566f8069e8839ccb667b6034374f0920cbb0d47db1f4e6",
+      "bytes": 1101
     },
     {
       "path": "CLAUDE.md",
@@ -38,13 +51,18 @@
     },
     {
       "path": "README-MERGE.txt",
-      "sha256": "7fbc5fd1d82c48b29f4a1867803f9f74e34556f48dadc5bafd9174700524dec6",
-      "bytes": 399
+      "sha256": "9562d8f17d71a8c383f8b2be6bd9bf8f30be8254433856a3355447644dd8bda9",
+      "bytes": 1964
     },
     {
       "path": "README.md",
       "sha256": "addaf5fefcda3cf5d9a1872762daf3399d1e5aa27e936cc3370d7b8c79630b0c",
       "bytes": 266
+    },
+    {
+      "path": "RELEASE.md",
+      "sha256": "f6cd84619095a4f25d76b248fa079522f049fcf53cc3bd289c5c32bdc69d4b2a",
+      "bytes": 980
     },
     {
       "path": "Technical-Visual-Pack-v1-Brief.md",
@@ -73,8 +91,8 @@
     },
     {
       "path": "app/admin/admin-navigation.ts",
-      "sha256": "126a492efe2891a69361452dbd02b42b67ec2ba75dd786f984a0db8d3a93676c",
-      "bytes": 2828
+      "sha256": "18c2ec55ed874615c0005545b68a65a514ddb81f7aa8335d64de38701662a6cb",
+      "bytes": 2968
     },
     {
       "path": "app/admin/attendance/[trainingId]/page.tsx",
@@ -478,13 +496,13 @@
     },
     {
       "path": "app/admin/coach/page.tsx",
-      "sha256": "08d5ae3d23cbd5678c7a3708fffbbdba843202b1a1653a02945090260bde903c",
-      "bytes": 7399
+      "sha256": "78ac778e0f371731d2856ba07e37d8b31128b2a094bdff95ac4e0eab4b9fd5c0",
+      "bytes": 7691
     },
     {
       "path": "app/admin/coach/training-plans/[id]/page.tsx",
-      "sha256": "edba610159b2c1801d98cefce283647ccfca1f0438ee7eb3082d9714296c4b25",
-      "bytes": 3990
+      "sha256": "6ec7364ac7486ff1a74d51a073e5667577d33114b1bd2d6f0314466b93388a83",
+      "bytes": 4094
     },
     {
       "path": "app/admin/coach/training-plans/components/ExerciseLibraryPicker.tsx",
@@ -498,23 +516,23 @@
     },
     {
       "path": "app/admin/coach/training-plans/components/TrainingPlanBuilder.tsx",
-      "sha256": "a5802735ef3166c78606286400b83f37e55151ba491ac1bade67aa94f07aeb0b",
-      "bytes": 41494
+      "sha256": "e1b8fe119a7e2eb5c113b45171c4ce065cc7b8a641e8a8688ba2e4635e818664",
+      "bytes": 74140
     },
     {
       "path": "app/admin/coach/training-plans/components/options.ts",
-      "sha256": "d6e90aff6466d8f4e44fe036910e25171ee455281cc97bc02d703bbd00e38b11",
-      "bytes": 3306
+      "sha256": "7793ea062148d2ee9594597efde9461c945a502d44cb9fff5d83a9b294d6a7d1",
+      "bytes": 3450
     },
     {
       "path": "app/admin/coach/training-plans/components/training-plan-service.ts",
-      "sha256": "ce7da223ccac54c3752473098395939724aa4a0b561f8af853df818a2ee09988",
-      "bytes": 6842
+      "sha256": "4ba915d60eecc8cfa3e6ec236e9ca22f74454c4f11f18d4b34a19077ae595719",
+      "bytes": 15130
     },
     {
       "path": "app/admin/coach/training-plans/components/types.ts",
-      "sha256": "47333583020ae0c36bc46dcdd259ca1f147c85bc50097479a7bb55c137cdebff",
-      "bytes": 2312
+      "sha256": "102f0edaa459ebd6292b332f166d704d5186c5c9345c6fe20b7fc73c38c3ff8a",
+      "bytes": 4197
     },
     {
       "path": "app/admin/coach/training-plans/components/useTrainingPlanUnsavedChanges.ts",
@@ -523,13 +541,28 @@
     },
     {
       "path": "app/admin/coach/training-plans/new/page.tsx",
-      "sha256": "6797b4586939e2414e40f9b1b34f1695368556232c272d62dfc6c381955f33ba",
-      "bytes": 504
+      "sha256": "7ac31870bbd2242f1eae69857b7b580acfe4e267b7dae65523cd891b3b775512",
+      "bytes": 4823
     },
     {
       "path": "app/admin/coach/training-plans/page.tsx",
-      "sha256": "f95c7bed24c65c0c8ed1c7d3cf90bbb59ff0aac56711df96a62dab6ba346d3f4",
-      "bytes": 17190
+      "sha256": "434ac740d6e3023a04744bc434ed445d3bbc7ba0cc2a9530fc2ce4da6af4c43a",
+      "bytes": 26398
+    },
+    {
+      "path": "app/admin/coach/training-templates/[id]/page.tsx",
+      "sha256": "e0d58b788457c2bffec4d3dd5d27c92dd9a9c7f36a48af9d93c485b2b8a38679",
+      "bytes": 4532
+    },
+    {
+      "path": "app/admin/coach/training-templates/new/page.tsx",
+      "sha256": "dae17aea7953ea1abd88661c1f4377dd3ca6c54e8d01be0b432a5178eeda1265",
+      "bytes": 777
+    },
+    {
+      "path": "app/admin/coach/training-templates/page.tsx",
+      "sha256": "9aa732a56cad9e33d3a3e900f622cb79d91dda4266e6a1d4db8393dccc9615bb",
+      "bytes": 21826
     },
     {
       "path": "app/admin/competitions/[competitionId]/page.tsx",
@@ -613,8 +646,13 @@
     },
     {
       "path": "app/admin/trainings/page.tsx",
-      "sha256": "1008eeaf6bc635c03842ec0e8af35a466f208f6ccb7b8f7ab3a465592f7fb927",
-      "bytes": 37912
+      "sha256": "d31089fd986da27bba5053dbdbcf473f481ca174a8a446eb523c3cc1ad6e1c1d",
+      "bytes": 52488
+    },
+    {
+      "path": "app/admin/trainings/training-notification-service.ts",
+      "sha256": "b5d0838fca87eed6b72ac247db8a3972d4da3942687439d056593cca9652f31e",
+      "bytes": 1188
     },
     {
       "path": "app/api/push/send/route.ts",
@@ -625,6 +663,11 @@
       "path": "app/api/push/subscribe/route.ts",
       "sha256": "0bbab691a878f0f4560e572cc656fa239b8685900d2372162ecf75a7842823d3",
       "bytes": 3619
+    },
+    {
+      "path": "app/api/training-notifications/send/route.ts",
+      "sha256": "225c9c2bf070fdfe0bd6d414558edfba75a254428a6e699fa518883af461bb50",
+      "bytes": 6832
     },
     {
       "path": "app/favicon.ico",
@@ -653,8 +696,8 @@
     },
     {
       "path": "app/manifest.ts",
-      "sha256": "6aea4caf12ed1acab42b47971b09b1445cd74ec50499b02a115bd91bbc462379",
-      "bytes": 1172
+      "sha256": "2dbe4c991c704ac223a507920a48c113947f44929871011609d237d1675ffd2a",
+      "bytes": 1167
     },
     {
       "path": "app/news/[slug]/page.tsx",
@@ -748,8 +791,8 @@
     },
     {
       "path": "components/Training.tsx",
-      "sha256": "7d97c95a3a84e61c343ab9ec3b0dbf7f51961226b5c7bb80641eafd2eed8296c",
-      "bytes": 25173
+      "sha256": "3bd4783c8ddca6faec0ff19d068aac65f28f378dae5b8377ea43fe42e990b87d",
+      "bytes": 26042
     },
     {
       "path": "components/admin/PushAdminForm.tsx",
@@ -788,8 +831,8 @@
     },
     {
       "path": "components/training/types.ts",
-      "sha256": "ac871e05964da5ec53ef69a5106cef6e9cd29b8f75185e8229d28d4dfbdccd61",
-      "bytes": 978
+      "sha256": "0d0ca6c84a43d322d0df2b80b5663f8ad70a2913ae2fa0747a4aa248d431bf4f",
+      "bytes": 1005
     },
     {
       "path": "components/training/utils.ts",
@@ -1248,8 +1291,8 @@
     },
     {
       "path": "docs/00-README.md",
-      "sha256": "cb20e65b8c8d70c43e190ba8a7131c4b91f762f5a9c9ff497b8630ce54f194ca",
-      "bytes": 3511
+      "sha256": "65509e5722c6dafac9bb4f0d48c593a7a8b4ea74395b8c545a8af365ce4e5eeb",
+      "bytes": 3673
     },
     {
       "path": "docs/01-project-overview.md",
@@ -1273,13 +1316,13 @@
     },
     {
       "path": "docs/05-tables.md",
-      "sha256": "19da58f821b8afa49dd1f914f70d975c2486a3a2ec422449ff09343a2be27fb1",
-      "bytes": 10725
+      "sha256": "3fdb6cebbea53b73b35875f8724168ee42f36071683b24b5e16c271494c109d6",
+      "bytes": 13808
     },
     {
       "path": "docs/06-functions-and-triggers.md",
-      "sha256": "4c97fd12e3c922da29544cea8f88d2476160823108e75ddd1b2b4f1d59fc8bd4",
-      "bytes": 6745
+      "sha256": "1ecff00c3981c48bb464fa7757b543aed180736e7718b8e5457b9e5df333cab6",
+      "bytes": 10441
     },
     {
       "path": "docs/07-business-logic.md",
@@ -1293,8 +1336,8 @@
     },
     {
       "path": "docs/09-pwa-and-push.md",
-      "sha256": "f066013451fa65057a964c852033a504f7da906d53d4042d197e18cbfe3337c7",
-      "bytes": 5706
+      "sha256": "67dc2f44b81c247847048a9763bfb80e83f26410ecfa0e6d1c613837178e8a2d",
+      "bytes": 6835
     },
     {
       "path": "docs/10-deployment.md",
@@ -1318,8 +1361,8 @@
     },
     {
       "path": "docs/14-roadmap.md",
-      "sha256": "dd8e722020745546e9bc4403426bd111607f86697b2c79f7d1169c62c2e3f01f",
-      "bytes": 3931
+      "sha256": "387f22a252959430973aa5cdb2157dea913e7b859e381c1cb78325e24d606f32",
+      "bytes": 4252
     },
     {
       "path": "docs/15-design-system-and-components.md",
@@ -1338,8 +1381,8 @@
     },
     {
       "path": "docs/18-current-state.md",
-      "sha256": "79e2bf945112ef64168c9d710961c3b8ae455287e9ffa916d1338863099dee49",
-      "bytes": 1925
+      "sha256": "5bdfcff07ac3275be4e9bfb2be77b76dbd3fdb4b97cd50236f190b24f0dcda43",
+      "bytes": 1482
     },
     {
       "path": "docs/19-tech-debt.md",
@@ -1387,6 +1430,11 @@
       "bytes": 2599
     },
     {
+      "path": "docs/26-sprint-5-1-training-templates-and-plan-duplication.md",
+      "sha256": "a8aab778c65adf26d0f4830743a9019262fc79749fc1243d34c15b61f634320c",
+      "bytes": 2992
+    },
+    {
       "path": "docs/26-sprint-5.0.3-exercise-quick-view-manual-block-ux.md",
       "sha256": "e8147bfc5d0884b9f6ba792d69fb5618e77708181791301e65c72989f32dfd0c",
       "bytes": 3418
@@ -1402,9 +1450,19 @@
       "bytes": 1711
     },
     {
+      "path": "docs/29-sprint-5.2-training-publish-flow.md",
+      "sha256": "65ade26a506b2063a019a679d368bffd02829a6126521a59dbcb6d47f70a5d62",
+      "bytes": 2535
+    },
+    {
+      "path": "docs/30-sprint-5.2.1-plan-training-integration-ux-completion.md",
+      "sha256": "96a818dd0abd3877a36f3193d4e7470daed3915b55d6e796cbe1ced29c77512c",
+      "bytes": 3510
+    },
+    {
       "path": "docs/CHANGELOG.md",
-      "sha256": "821cb098f3aabe5747f0458c51b7d69563f226560533b31dee9ab15ba1261eb8",
-      "bytes": 14284
+      "sha256": "eea2cf8def1857fcb20e1c87f361d47a52e8a690c6955aaa27bf3a3a4a39a5c9",
+      "bytes": 15618
     },
     {
       "path": "docs/DEFERRED-MEDIA-BACKLOG.md",
@@ -1572,9 +1630,29 @@
       "bytes": 272
     },
     {
+      "path": "docs/releases/Sprint-05.1-Training-Templates-and-Plan-Duplication.md",
+      "sha256": "e61a040293948b3c2f1f24ad66a5708bb2017cd842d46673276bdd663effe54d",
+      "bytes": 815
+    },
+    {
+      "path": "docs/releases/Sprint-05.2-Training-Publish-Flow.md",
+      "sha256": "12d39ca9885263c0b90a64e161decb155a6c1dd5e4faf31388cbfd1deb06b5a9",
+      "bytes": 980
+    },
+    {
+      "path": "docs/releases/Sprint-05.2.1-Plan-Training-Integration-and-UX-Completion.md",
+      "sha256": "6f08bbe1bafa5b7399f2bbbb55a3f27854fd9077940e61bcac64d8f0d3ae6ef6",
+      "bytes": 1085
+    },
+    {
       "path": "eslint.config.mjs",
       "sha256": "870f1adccecf3051cbcd9fd307cef51d7633cf510979c181a81f4b1797273493",
       "bytes": 465
+    },
+    {
+      "path": "lib/server/push-sender.ts",
+      "sha256": "8a1902d93bda609ad4598db05a970f36f0393f19a9e7ed0f28ff3463d0ec7d45",
+      "bytes": 3504
     },
     {
       "path": "lib/supabase.ts",
@@ -1603,13 +1681,13 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "7c506eea8acb0a9acacd4ca349d7f5f235163676c933f34be10924a5344ccf3c",
+      "sha256": "5c9ce8d57eedd4ebad97376ac4ff60ab9ab4736a1c7bb6884b7a22e61fd15f64",
       "bytes": 252697
     },
     {
       "path": "package.json",
-      "sha256": "62d0a4e15249788bf5f441c4252cb50d56b2b97254b73b8f152b107c922787b6",
-      "bytes": 714
+      "sha256": "e7182d46fdd33d85c991cac186cc4700b5f38a21db25bb0930c71c9ba9602290",
+      "bytes": 808
     },
     {
       "path": "postcss.config.mjs",
@@ -1737,11 +1815,6 @@
       "bytes": 1375
     },
     {
-      "path": "public/sw.js",
-      "sha256": "264febdbe15c128c353a8815f29b4effd9cd45ebbc0c84162512e592ff314472",
-      "bytes": 48213
-    },
-    {
       "path": "public/vercel.svg",
       "sha256": "f081337b2fee635b455b63275406a3e7f39d6a014e25ad90dab5a67e62a12ac4",
       "bytes": 128
@@ -1817,6 +1890,36 @@
       "bytes": 850
     },
     {
+      "path": "qa/Sprint-05.1-Training-Templates-and-Plan-Duplication-QA-Checklist.md",
+      "sha256": "8e489cba636d63905468afd37ac839d759cce29a996b4e026a3ab9423060b84b",
+      "bytes": 2496
+    },
+    {
+      "path": "qa/Sprint-05.1-Validation-Report.md",
+      "sha256": "50add3a4566a5a15b22b4df1262bf363f1599d335b054f4ef6ad2657853b8086",
+      "bytes": 1719
+    },
+    {
+      "path": "qa/Sprint-05.2-Training-Publish-Flow-QA-Checklist.md",
+      "sha256": "49f42a53e48ead9c22aa8102b4712e906c2199b4bf090da22e4554e575f48b12",
+      "bytes": 2937
+    },
+    {
+      "path": "qa/Sprint-05.2-Validation-Report.md",
+      "sha256": "dd6f67ed8c85313174d2945b50bccfad492c3ab09680aaa64e017cfee64d0837",
+      "bytes": 1584
+    },
+    {
+      "path": "qa/Sprint-05.2.1-Plan-Training-Integration-QA-Checklist.md",
+      "sha256": "db4e01002918739825c4cccfaa15f1b7c42bc36dc3818f2ed6426ad5a241dfbc",
+      "bytes": 3369
+    },
+    {
+      "path": "qa/Sprint-05.2.1-Validation-Report.md",
+      "sha256": "03afda50775e4379649587516d681bc8d65b69f869ff2e919d0a86077c2fb530",
+      "bytes": 1823
+    },
+    {
       "path": "qa/Technical-Content-Pack-v1-QA-Checklist.md",
       "sha256": "22976e4d6b37c3ec9045bc92675d53d9643fb3a0b9ac65e193c07e597290c951",
       "bytes": 2576
@@ -1865,6 +1968,21 @@
       "path": "sql/2026-08-03-training-builder-duration-and-layout-qa-fix.sql",
       "sha256": "98d637670bba300f298b779d91fd9c6fd361edfb573e71c44635e9b6529d4fee",
       "bytes": 5203
+    },
+    {
+      "path": "sql/2026-08-03-training-publish-flow.sql",
+      "sha256": "5d7d3573ebb5f1e796906995e7549f0f20ec59e7643937e44f79369cf97f739b",
+      "bytes": 24879
+    },
+    {
+      "path": "sql/2026-08-03-training-templates-and-plan-duplication.sql",
+      "sha256": "42aa943edd1bf4d1bc0b06d0f05e6032bc05c6599c30d3f706b06accc3a46dc9",
+      "bytes": 8576
+    },
+    {
+      "path": "sql/2026-08-04-plan-training-integration-ux-completion.sql",
+      "sha256": "d7e5c2fa382074193c4fd144633f94e26fc7234c9dc4a9138957ccf3729a642f",
+      "bytes": 44406
     },
     {
       "path": "tsconfig.json",

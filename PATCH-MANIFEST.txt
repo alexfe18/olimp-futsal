@@ -1,0 +1,31 @@
+SPRINT 05.2.1 — PATCH MANIFEST
+
+File count (excluding this manifest): 27
+
+83a673cfa50118adad566f8069e8839ccb667b6034374f0920cbb0d47db1f4e6      1101  CHANGED-FILES.txt
+c4d507d0aff32e286d74dbd3e7654762d5636f09480a233ac97429610154d9de     71171  FULL-PROJECT-MANIFEST.json
+9562d8f17d71a8c383f8b2be6bd9bf8f30be8254433856a3355447644dd8bda9      1964  README-MERGE.txt
+f6cd84619095a4f25d76b248fa079522f049fcf53cc3bd289c5c32bdc69d4b2a       980  RELEASE.md
+e1b8fe119a7e2eb5c113b45171c4ce065cc7b8a641e8a8688ba2e4635e818664     74140  app/admin/coach/training-plans/components/TrainingPlanBuilder.tsx
+4ba915d60eecc8cfa3e6ec236e9ca22f74454c4f11f18d4b34a19077ae595719     15130  app/admin/coach/training-plans/components/training-plan-service.ts
+434ac740d6e3023a04744bc434ed445d3bbc7ba0cc2a9530fc2ce4da6af4c43a     26398  app/admin/coach/training-plans/page.tsx
+d31089fd986da27bba5053dbdbcf473f481ca174a8a446eb523c3cc1ad6e1c1d     52488  app/admin/trainings/page.tsx
+b5d0838fca87eed6b72ac247db8a3972d4da3942687439d056593cca9652f31e      1188  app/admin/trainings/training-notification-service.ts
+225c9c2bf070fdfe0bd6d414558edfba75a254428a6e699fa518883af461bb50      6832  app/api/training-notifications/send/route.ts
+3bd4783c8ddca6faec0ff19d068aac65f28f378dae5b8377ea43fe42e990b87d     26042  components/Training.tsx
+0d0ca6c84a43d322d0df2b80b5663f8ad70a2913ae2fa0747a4aa248d431bf4f      1005  components/training/types.ts
+65509e5722c6dafac9bb4f0d48c593a7a8b4ea74395b8c545a8af365ce4e5eeb      3673  docs/00-README.md
+3fdb6cebbea53b73b35875f8724168ee42f36071683b24b5e16c271494c109d6     13808  docs/05-tables.md
+1ecff00c3981c48bb464fa7757b543aed180736e7718b8e5457b9e5df333cab6     10441  docs/06-functions-and-triggers.md
+67dc2f44b81c247847048a9763bfb80e83f26410ecfa0e6d1c613837178e8a2d      6835  docs/09-pwa-and-push.md
+65ade26a506b2063a019a679d368bffd02829a6126521a59dbcb6d47f70a5d62      2535  docs/29-sprint-5.2-training-publish-flow.md
+96a818dd0abd3877a36f3193d4e7470daed3915b55d6e796cbe1ced29c77512c      3510  docs/30-sprint-5.2.1-plan-training-integration-ux-completion.md
+eea2cf8def1857fcb20e1c87f361d47a52e8a690c6955aaa27bf3a3a4a39a5c9     15618  docs/CHANGELOG.md
+12d39ca9885263c0b90a64e161decb155a6c1dd5e4faf31388cbfd1deb06b5a9       980  docs/releases/Sprint-05.2-Training-Publish-Flow.md
+6f08bbe1bafa5b7399f2bbbb55a3f27854fd9077940e61bcac64d8f0d3ae6ef6      1085  docs/releases/Sprint-05.2.1-Plan-Training-Integration-and-UX-Completion.md
+8a1902d93bda609ad4598db05a970f36f0393f19a9e7ed0f28ff3463d0ec7d45      3504  lib/server/push-sender.ts
+49f42a53e48ead9c22aa8102b4712e906c2199b4bf090da22e4554e575f48b12      2937  qa/Sprint-05.2-Training-Publish-Flow-QA-Checklist.md
+dd6f67ed8c85313174d2945b50bccfad492c3ab09680aaa64e017cfee64d0837      1584  qa/Sprint-05.2-Validation-Report.md
+db4e01002918739825c4cccfaa15f1b7c42bc36dc3818f2ed6426ad5a241dfbc      3369  qa/Sprint-05.2.1-Plan-Training-Integration-QA-Checklist.md
+03afda50775e4379649587516d681bc8d65b69f869ff2e919d0a86077c2fb530      1823  qa/Sprint-05.2.1-Validation-Report.md
+d7e5c2fa382074193c4fd144633f94e26fc7234c9dc4a9138957ccf3729a642f     44406  sql/2026-08-04-plan-training-integration-ux-completion.sql
