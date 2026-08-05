@@ -1,6 +1,6 @@
 {
   "name": "olimp-futsal",
-  "version": "0.5.2",
+  "version": "0.6.0-alpha.1",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "predeploy:check": "npm run typecheck && npm run build"
+    "predeploy:check": "npm run typecheck && npm run build",
+    "audit:players-import": "node scripts/sprint-05.3.0/audit-player-import.mjs",
+    "audit:team-mapping": "node scripts/sprint-05.3.0/audit-team-mapping.mjs"
   },
   "dependencies": {
     "@serwist/next": "^9.5.12",

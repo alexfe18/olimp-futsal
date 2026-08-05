@@ -106,6 +106,7 @@ Project documentation is divided into individual sections.
 | 24-sprint-5-training-builder-foundation.md | Training Builder Foundation |
 | 29-sprint-5.2-training-publish-flow.md | Training Publish Flow |
 | 30-sprint-5.2.1-plan-training-integration-ux-completion.md | Plan ↔ Training Integration |
+| 31-sprint-5.3.0-audit-design-freeze.md | Users/Roles/Teams Audit & Design Freeze |
 
 ---
 

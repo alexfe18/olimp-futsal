@@ -384,3 +384,11 @@ Date: 2026-07-31
 - Added restore-to-active behavior for a training cancelled while published.
 - Kept manual trainings without plans fully supported.
 - Clarified that the general club calendar is a separate future module.
+
+## 0.6.0-alpha.1 — Sprint 05.3.0 Audit & Design Freeze
+
+- Added adult-team-only pilot decision.
+- Added read-only DB/RLS and legacy team-name audit.
+- Added private contact import validation and read-only player matching scripts.
+- Added Git protection for private contact files and generated reports.
+- No Auth accounts or production data are created/changed in this stage.

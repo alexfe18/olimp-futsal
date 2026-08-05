@@ -44,3 +44,8 @@ next-env.d.ts
 # Serwist generated files
 public/sw*
 public/swe-worker*
+# private roster/contact imports and generated audit output
+/private-imports/
+/audit-output/*.json
+/audit-output/*.csv
+/audit-output/*.txt
