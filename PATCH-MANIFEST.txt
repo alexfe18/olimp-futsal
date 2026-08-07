@@ -1,31 +1,30 @@
-SPRINT 05.2.1 — PATCH MANIFEST
+SPRINT 05.3.1 — DATASET-ALIGNMENT PATCH MANIFEST
 
-File count (excluding this manifest): 27
+version: 0.6.0-alpha.2
+file_count: 25
 
-83a673cfa50118adad566f8069e8839ccb667b6034374f0920cbb0d47db1f4e6      1101  CHANGED-FILES.txt
-c4d507d0aff32e286d74dbd3e7654762d5636f09480a233ac97429610154d9de     71171  FULL-PROJECT-MANIFEST.json
-9562d8f17d71a8c383f8b2be6bd9bf8f30be8254433856a3355447644dd8bda9      1964  README-MERGE.txt
-f6cd84619095a4f25d76b248fa079522f049fcf53cc3bd289c5c32bdc69d4b2a       980  RELEASE.md
-e1b8fe119a7e2eb5c113b45171c4ce065cc7b8a641e8a8688ba2e4635e818664     74140  app/admin/coach/training-plans/components/TrainingPlanBuilder.tsx
-4ba915d60eecc8cfa3e6ec236e9ca22f74454c4f11f18d4b34a19077ae595719     15130  app/admin/coach/training-plans/components/training-plan-service.ts
-434ac740d6e3023a04744bc434ed445d3bbc7ba0cc2a9530fc2ce4da6af4c43a     26398  app/admin/coach/training-plans/page.tsx
-d31089fd986da27bba5053dbdbcf473f481ca174a8a446eb523c3cc1ad6e1c1d     52488  app/admin/trainings/page.tsx
-b5d0838fca87eed6b72ac247db8a3972d4da3942687439d056593cca9652f31e      1188  app/admin/trainings/training-notification-service.ts
-225c9c2bf070fdfe0bd6d414558edfba75a254428a6e699fa518883af461bb50      6832  app/api/training-notifications/send/route.ts
-3bd4783c8ddca6faec0ff19d068aac65f28f378dae5b8377ea43fe42e990b87d     26042  components/Training.tsx
-0d0ca6c84a43d322d0df2b80b5663f8ad70a2913ae2fa0747a4aa248d431bf4f      1005  components/training/types.ts
-65509e5722c6dafac9bb4f0d48c593a7a8b4ea74395b8c545a8af365ce4e5eeb      3673  docs/00-README.md
-3fdb6cebbea53b73b35875f8724168ee42f36071683b24b5e16c271494c109d6     13808  docs/05-tables.md
-1ecff00c3981c48bb464fa7757b543aed180736e7718b8e5457b9e5df333cab6     10441  docs/06-functions-and-triggers.md
-67dc2f44b81c247847048a9763bfb80e83f26410ecfa0e6d1c613837178e8a2d      6835  docs/09-pwa-and-push.md
-65ade26a506b2063a019a679d368bffd02829a6126521a59dbcb6d47f70a5d62      2535  docs/29-sprint-5.2-training-publish-flow.md
-96a818dd0abd3877a36f3193d4e7470daed3915b55d6e796cbe1ced29c77512c      3510  docs/30-sprint-5.2.1-plan-training-integration-ux-completion.md
-eea2cf8def1857fcb20e1c87f361d47a52e8a690c6955aaa27bf3a3a4a39a5c9     15618  docs/CHANGELOG.md
-12d39ca9885263c0b90a64e161decb155a6c1dd5e4faf31388cbfd1deb06b5a9       980  docs/releases/Sprint-05.2-Training-Publish-Flow.md
-6f08bbe1bafa5b7399f2bbbb55a3f27854fd9077940e61bcac64d8f0d3ae6ef6      1085  docs/releases/Sprint-05.2.1-Plan-Training-Integration-and-UX-Completion.md
-8a1902d93bda609ad4598db05a970f36f0393f19a9e7ed0f28ff3463d0ec7d45      3504  lib/server/push-sender.ts
-49f42a53e48ead9c22aa8102b4712e906c2199b4bf090da22e4554e575f48b12      2937  qa/Sprint-05.2-Training-Publish-Flow-QA-Checklist.md
-dd6f67ed8c85313174d2945b50bccfad492c3ab09680aaa64e017cfee64d0837      1584  qa/Sprint-05.2-Validation-Report.md
-db4e01002918739825c4cccfaa15f1b7c42bc36dc3818f2ed6426ad5a241dfbc      3369  qa/Sprint-05.2.1-Plan-Training-Integration-QA-Checklist.md
-03afda50775e4379649587516d681bc8d65b69f869ff2e919d0a86077c2fb530      1823  qa/Sprint-05.2.1-Validation-Report.md
-d7e5c2fa382074193c4fd144633f94e26fc7234c9dc4a9138957ccf3729a642f     44406  sql/2026-08-04-plan-training-integration-ux-completion.sql
+f14b4987904bcb5814e4459a057ed4d20f58a633152288a761214dcd28780b56          3  .nvmrc
+a1f0748803d1e35ec48cd7d972788d14e567a2e814a576cfaf7c239c01722abb        919  README-INSTALL.txt
+14a122dcc6e06079c11b2beee2b79c9918726f43738eb8751bd910dab4fcf486       2647  README-MERGE.txt
+6547fc5549a2a94c1edb75fbc6b75337201f2dc873f49367578052d947180a24       1386  RELEASE.md
+4f5576dd5218434a159eef28d925d06d990293ba937b53feeac088b3958a1fa7       1577  data-import/README.md
+9851fd9699a8c41d2c9dae6f664964c43dba5a9091391489cf2bc79296a40fd0       6764  docs/03-database.md
+6c58af93c7c4fa5855ae89f6626538f1215a3aa52b52356cbd3e50726414b373      16328  docs/05-tables.md
+34510d171519f48928e112ea4b9403ab629350eca5e7a7ad6d53bae0bb18c06c      11962  docs/06-functions-and-triggers.md
+067cd15b7858361c264b02806b2c264f7861fbc0083fb7c6507c379307699b0a       6030  docs/32-sprint-5.3.1-database-foundation.md
+fa423e8727493ba27a127067a76529787047daddb49f7bbd381d0f3002c5259a       2015  docs/33-sprint-5.3.1-rollback-and-recovery.md
+e3caac66f3565533efe1db3cb1c01227b020ae5758105ca1753b515551f48c94      17350  docs/CHANGELOG.md
+d3d66bda6fd59283c73ed85b52bd434532d52dc76943d3afbdf770a093c9eab0        586  docs/releases/Sprint-05.3.1-Database-Foundation.md
+4ef18795344fb3e089571d70723d135b6939543a3ac40e8eafef293d3f72480f       3276  docs/roles-and-access.md
+b825e3b1a7cecb924bea8eaa1edf1e7ed9086873819442b3885f6c8d740f24ec         70  lib/access/index.ts
+eaf8c1a0ecd1f2072781f8d44db68e2f79c8f7bc505ddb9fa037ff93e106b919       2978  lib/access/permission-catalog.ts
+cfa9b5635f369603f0aadae9687d4629fbcdb03ba01464296962ebcf2400c4f7        771  lib/access/system-roles.ts
+75a60e6d6548e3518aaabdfb965af3ae413da530564042e170abc16dd8cc382a     252768  package-lock.json
+0a11a865b905070cee4cdd0d6869cedfa836ea9b4571f95b32964cd8d85dce99       1196  package.json
+a4106bdcd97d2156d021385c313b0d34c76444a7837a281ca7207fb99ac3b2f7       3291  qa/Sprint-05.3.1-Database-Foundation-QA-Checklist.md
+dff34d622bb167f806681013f54381da1ac57a1105ab8cb43ff0b4a3bd32763f       2784  qa/Sprint-05.3.1-Validation-Report.md
+e81fda27e830e3c57332bb43a667bf3f6a5479a596c5320a24335b3c1983333c       9081  scripts/sprint-05.3.1/import-player-contacts.mjs
+493eebd0655353c2de36b6340d04712b3a86d7d2c9f316b7c7daa802d1a9ac3f       5758  scripts/sprint-05.3.1/verify-database-foundation.mjs
+d18e78f722bf6c66f5ea426e830a2d94c344827638f92aa076da20e7305e3d03      82341  sql/2026-08-05-sprint-05.3.1-database-foundation.sql
+01551e54d3ad87835760393a2fd7874e2996e047899268c50a26066426e877d6       2457  sql/2026-08-05-sprint-05.3.1-preflight.sql
+64432b7c6244928f5d3b6a078039b5fd99b578c64b741864b83fda971218b517       5557  sql/2026-08-05-sprint-05.3.1-verification.sql

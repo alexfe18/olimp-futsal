@@ -1,54 +1,75 @@
-SPRINT 05.2.1 — PLAN ↔ TRAINING INTEGRATION & UX COMPLETION
+SPRINT 05.3.1 — DATABASE FOUNDATION DATASET-ALIGNMENT PATCH
 
-PACKAGE TYPE
-Merge-ready patch for the current sprint/05.2-training-publish-flow branch.
-Apply after Sprint 05.2 source and SQL migration.
+Target branch:
+  sprint/05.3-users-roles-teams
 
-PRODUCT MODEL
-- Training Plan stores methodology: exercises, blocks, order, duration and coach notes.
-- Training stores the concrete event: date, time, location, team, lifecycle, Push and Attendance.
-- Draft creates no training.
-- Planning creates one inactive linked training.
-- Publishing activates that same UUID.
-- Repeated planning/publication updates the same linked training and never creates a duplicate.
+This archive REPLACES the previously installed Sprint 05.3.1 patch files. Do not run the old migration; replace these files first.
+It is prepared for the confirmed Production baseline:
+  19 players / 18 sporting-active / 1 sporting-inactive
 
-INSTALL
-1. Copy this package over the project root, preserving relative paths.
-2. Run the required migration in Supabase SQL Editor:
-   sql/2026-08-04-plan-training-integration-ux-completion.sql
-3. Restart the local app and clear stale localhost Service Worker data if an old bundle is shown.
-4. Run:
+Corrected behavior:
+- all 19 current players receive active adult-team access membership;
+- players.is_active remains the separate sporting/availability status;
+- the injured inactive player can be prepared for a future account;
+- legacy team_name values `Олімп Футзал` and `Дорослі` map to the adult team;
+- QA/verification expectations are updated to 19 players.
+
+INSTALL / REPLACE
+
+1. Extract this ZIP.
+2. Copy the ENTIRE content of this patch folder into the project root.
+   Recommended command (adjust only the extracted folder path if necessary):
+
+   rsync -av \
+     ~/Desktop/sprint-05.3.1-dataset-fix/Sprint-05.3.1-Database-Foundation-Dataset-Fix/ \
+     ~/Desktop/olimp-release-0.5/olimp-futsal/
+
+3. Confirm:
+   cd ~/Desktop/olimp-release-0.5/olimp-futsal
+   git branch --show-current
+   node -p "require('./package.json').version"
+
+   Expected:
+   sprint/05.3-users-roles-teams
+   0.6.0-alpha.2
+
+4. Re-run local checks:
+   rm -rf .next
    npm ci
    npm run typecheck
    npm run build
-   npm run dev
 
-NEW/UPDATED FLOWS
-- Plan → linked Training and Training → linked Plan navigation.
-- Read-only plan summary in /admin/trainings.
-- Date/time/location/team synchronization in both directions.
-- Existing Push notifications for publish, organizational update, cancel and restore.
-- Attendance links reuse the same training_id.
-- Manual trainings without plans continue to work.
+5. IMPORTANT PRIVATE CSV:
+   private-imports/adult-team-contacts.csv is intentionally NOT included.
+   Add the new 19th player locally before contact dry-run.
+   The injured player must use player_status=inactive but create_account=true.
 
-REQUIRED ENVIRONMENT VARIABLES
-No new variables. Existing Push flow requires:
-- NEXT_PUBLIC_SUPABASE_URL
-- NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-- SUPABASE_SERVICE_ROLE_KEY
-- NEXT_PUBLIC_VAPID_PUBLIC_KEY
-- VAPID_PRIVATE_KEY
-- VAPID_SUBJECT
+6. Database order in Supabase SQL Editor:
+   a) sql/2026-08-05-sprint-05.3.1-preflight.sql
+   b) Make/confirm database backup.
+   c) sql/2026-08-05-sprint-05.3.1-database-foundation.sql
+   d) sql/2026-08-05-sprint-05.3.1-verification.sql
 
-DATABASE
-SQL required: YES.
-Run after sql/2026-08-03-training-publish-flow.sql.
+IMPORTANT OWNER RULE:
+- If preflight shows exactly one Auth user, migration selects it as Owner.
+- If more than one Auth user exists, edit v_initial_owner_id before migration.
 
-QA
-Use qa/Sprint-05.2.1-Plan-Training-Integration-QA-Checklist.md.
-Runtime Supabase, Push, browser and mobile QA must be completed locally/Preview.
+7. Terminal verification:
+   npm run verify:db-foundation
 
-NOT INCLUDED
-- Team Plan Visibility — Sprint 05.3.
-- General club calendar — Sprint 05.4.
-- Team chat/sharing — later scope.
+8. Private contact dry-run:
+   npm run import:player-contacts -- \
+     --file private-imports/adult-team-contacts.csv
+
+9. Apply only after dry-run PASS:
+   npm run import:player-contacts -- \
+     --file private-imports/adult-team-contacts.csv \
+     --apply \
+     --confirm IMPORT_CONTACTS
+
+10. Repeat verification SQL and terminal verification.
+
+SECURITY:
+- private-imports/ and audit-output/ must not appear in git status.
+- This sprint prepares account requests but creates zero player Auth accounts.
+- Do not run npm audit fix --force as part of this patch.

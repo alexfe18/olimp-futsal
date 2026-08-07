@@ -1,8 +1,8 @@
 # Database Functions & Triggers
 
 > Database Automation Documentation
-> Version: 1.0
-> Last updated: July 2026
+> Version: 1.1
+> Last updated: August 2026
 
 ---
 
@@ -400,3 +400,43 @@ Versioned save flow з підтримкою дати, часу, місця, ко
 
 - `sql/2026-08-03-training-publish-flow.sql`
 - `sql/2026-08-04-plan-training-integration-ux-completion.sql`
+
+
+---
+
+# Sprint 05.3.1 — Access and Team Foundation Functions
+
+## app_private permission helpers
+
+- `current_profile_id()`
+- `is_active_profile()`
+- `has_global_permission(permission_code)`
+- `has_team_permission(permission_code, team_id)`
+- `is_team_member(team_id)`
+- `is_player_self(player_id)`
+- `is_guardian_of(player_id)`
+- `can_read_team_data(team_id)`
+- `can_manage_team_data(permission_code, team_id)`
+
+The helpers are `SECURITY DEFINER`, schema-qualified and located in non-exposed `app_private`. They are used by new-table RLS and future server authorization.
+
+## Auth profile trigger
+
+`app_private.handle_new_auth_user()` creates/updates `profiles` after a new `auth.users` row.
+
+## Integrity triggers
+
+- protect system role code/scope;
+- protect immutable permission codes;
+- validate global/team role assignment tables;
+- protect the last active Owner;
+- block audit log mutation;
+- update `updated_at`.
+
+## Team compatibility trigger
+
+`app_private.sync_legacy_team_reference()` keeps `team_name` and `team_id` compatible while the current UI/RPC layer is migrated gradually. For the adult pilot it recognizes `Олімп Футзал`, `Олімп`, `adult`, `Дорослі` and `Доросла команда`.
+
+## apply_player_contact_foundation_import(jsonb)
+
+Service-role-only atomic RPC for private contact preparation. It upserts contacts and keeps current adult-team memberships active, while `player_status` remains a sporting status. It writes aggregate audit and creates zero Auth accounts.

@@ -1,23 +1,39 @@
-# Release 0.5.2 — Training Publish Flow
+# Release 0.6.0-alpha.2 — Users, Roles & Teams Database Foundation
 
-Статус: Sprint 05.2.1 package ready for local SQL migration and QA.
+Статус: Sprint 05.3.1 package ready for Supabase preflight, migration and local/Preview regression.
 
-В релиз входят:
+## Входит
 
-- Training Builder и Templates из 0.5.1;
-- Draft / Planned / Published / Completed / Cancelled lifecycle;
-- создание одной linked training уже на этапе planning;
-- публикация без дублирования training UUID;
-- Plan ↔ Training navigation и read-only plan summary;
-- синхронизация date/time/location/team в обе стороны;
-- существующие Push-уведомления для publish/update/cancel/restore;
-- Attendance linkage по одному `training_id`;
-- ручные тренировки без плана;
-- техническая основа для Sprint 05.3 Team Plan Visibility.
+- profiles linked to Supabase Auth;
+- global/team RBAC tables and protected system roles;
+- atomic permission catalog;
+- real `teams` and adult `Олімп Футзал` pilot;
+- active access memberships for all 19 current players, independent from sporting availability;
+- private player contact and account-preparation model;
+- guardian/invitation foundation;
+- append-only audit log;
+- team_id compatibility for Plans, Trainings, Templates and plan events, including `Олімп Футзал` / `Дорослі` aliases;
+- RLS helper functions for future server authorization;
+- private contact dry-run/apply and verification scripts;
+- Node.js 22 project requirement.
 
-Обязательные миграции:
+## Не входит
+
+- создание Auth-аккаунтов игроков;
+- Users/Roles/Teams UI;
+- replacement of current AdminShell auth;
+- removal of broad legacy module policies;
+- youth teams;
+- Team Plan Visibility.
+
+## SQL order
 
 ```text
-sql/2026-08-03-training-publish-flow.sql
-sql/2026-08-04-plan-training-integration-ux-completion.sql
+sql/2026-08-05-sprint-05.3.1-preflight.sql
+sql/2026-08-05-sprint-05.3.1-database-foundation.sql
+sql/2026-08-05-sprint-05.3.1-verification.sql
 ```
+
+## Private import
+
+The filled contact CSV stays only under `private-imports/` and is not part of this release archive.

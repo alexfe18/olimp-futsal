@@ -1,14 +1,14 @@
 # Database Tables Reference
 
 > Database Tables Documentation
-> Version: 1.0
-> Last updated: July 2026
+> Version: 1.1
+> Last updated: August 2026
 
 ---
 
 # 1. Загальна інформація
 
-База даних системи **«Олімп Футзал»** включає **23 основні таблиці**, які забезпечують роботу всіх функціональних модулів системи.
+База даних системи **«Олімп Футзал»** включає **34 основні таблиці**, які забезпечують роботу всіх функціональних модулів системи.
 
 Кожна таблиця має чітке призначення та використовується одним або декількома модулями.
 
@@ -41,6 +41,17 @@
 | training_templates          | Training Templates |
 | training_template_blocks    | Training Templates |
 | training_plan_events        | Training Publish Flow |
+| profiles                    | Identity & Access     |
+| teams                       | Teams                 |
+| roles                       | Access Control        |
+| permissions                 | Access Control        |
+| role_permissions            | Access Control        |
+| user_roles                  | Access Control        |
+| team_memberships            | Teams / Roster        |
+| player_contacts             | Accounts / Contacts   |
+| guardian_player_links       | Guardian Access       |
+| invitations                 | Account Onboarding    |
+| audit_log                   | Security Audit        |
 
 ---
 
@@ -551,3 +562,55 @@ FK `exercise_id` використовує `ON DELETE SET NULL`, тому вид�
 Lifecycle outbox для синхронізації Plan ↔ Training та вже працюючих Push-сповіщень. Зберігає `training_plan_id`,
 optional `training_id`, `event_type`, `payload`, `created_by`, `created_at` і
 `processed_at`.
+
+
+---
+
+# 24. Sprint 05.3.1 Foundation Tables
+
+## profiles
+
+Application profile linked 1:1 to `auth.users`. Stores `display_name`, contact snapshots, `account_status`, locale and lifecycle metadata.
+
+## teams
+
+Real club teams. Initial pilot row: `adult` / `Олімп Футзал`. Teams are archived, not physically deleted.
+
+## roles / permissions / role_permissions
+
+Editable RBAC catalog. System roles are protected. Permission codes are immutable. Roles have `global` or `team` scope.
+
+## user_roles
+
+Global role assignments to profiles with validity dates and active state. The last active Owner cannot be removed.
+
+## team_memberships
+
+Team roster/staff history connecting `team_id`, optional `profile_id`, optional `player_id` and a team role. Shirt number belongs here for future multi-team/season use. Membership status controls team access and is intentionally independent from the sporting availability flag `players.is_active`.
+
+## player_contacts
+
+Private club-verified phone/contact data and future account provisioning state. Real phone values are never included in Git or public output.
+
+## guardian_player_links
+
+Future youth-team guardian-to-player relationship and attendance-response permission.
+
+## invitations
+
+Foundation for controlled email/phone onboarding. Tokens are stored only as hashes.
+
+## audit_log
+
+Append-only critical action history. Direct UPDATE and DELETE are rejected.
+
+## Existing table changes
+
+- `training_plans.team_id`
+- `trainings.team_id`
+- `training_templates.team_id`
+- `training_plan_events.team_id`
+- `training_attendance.responded_by_profile_id`
+- `push_subscriptions.profile_id`
+
+`team_name` and current `player_id` Push behavior remain for compatibility during the staged cutover. The adult-team resolver accepts the canonical name and the legacy `Дорослі` value. `current_team_roster` exposes both membership status and `player_is_active`.

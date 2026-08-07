@@ -392,3 +392,26 @@ Date: 2026-07-31
 - Added private contact import validation and read-only player matching scripts.
 - Added Git protection for private contact files and generated reports.
 - No Auth accounts or production data are created/changed in this stage.
+
+
+## 0.6.0-alpha.2 — Sprint 05.3.1 Database Foundation
+
+- Added profiles, teams, roles, permissions, global roles and team memberships.
+- Seeded 11 protected system roles and the atomic permission catalog.
+- Added initial Owner bootstrap and automatic Auth-user profile creation.
+- Added the canonical adult `Олімп Футзал` team and roster backfill.
+- Added `team_id` compatibility to plans, trainings, templates and plan events.
+- Added private player contacts, guardian links, invitations and append-only audit log.
+- Added RLS permission helpers and restrictive policies for new foundation tables.
+- Added dry-run/confirmed private contact import and DB verification tools.
+- Added Node.js 22 project requirement.
+- No player Auth accounts are created and no broad legacy RLS policies are removed.
+
+
+### Sprint 05.3.1 dataset-alignment hotfix
+
+- Updated the verified Production baseline to 19 players: 18 sporting-active and 1 sporting-inactive.
+- Separated sporting availability (`players.is_active`) from access membership status.
+- All 19 current adult-team players receive active access memberships, including the injured player who requires a future account.
+- Added adult-team alias mapping for the legacy `Дорослі` training value.
+- Updated SQL/Node verification and QA expectations for 19 contacts and 18 prepared accounts.

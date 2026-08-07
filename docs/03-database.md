@@ -1,8 +1,8 @@
 # Database Overview
 
 > Database Documentation
-> Version: 1.0
-> Last updated: July 2026
+> Version: 1.1
+> Last updated: August 2026
 
 ---
 
@@ -42,7 +42,7 @@
 
 | Компонент         | Кількість |
 | ----------------- | --------: |
-| Таблиць           |    **15** |
+| Таблиць           |    **34** |
 | Primary Keys      |    **15** |
 | Foreign Keys      |    **20** |
 | SQL Functions     |    **11** |
@@ -56,6 +56,22 @@
 # 4. Основні таблиці
 
 База даних складається з наступних функціональних модулів.
+
+## Identity, Access & Teams
+
+- profiles
+- roles
+- permissions
+- role_permissions
+- user_roles
+- teams
+- team_memberships
+- player_contacts
+- guardian_player_links
+- invitations
+- audit_log
+
+---
 
 ## Команда
 
@@ -255,3 +271,20 @@ Push Subscriptions
 | Версія | Дата        | Зміни             |
 | ------ | ----------- | ----------------- |
 | 1.0    | Липень 2026 | Створено документ |
+
+
+---
+
+# 11. Sprint 05.3.1 — Database Foundation
+
+Database Foundation adds a real team entity and DB-based RBAC model without replacing legacy module policies yet.
+
+Key compatibility rule:
+
+```text
+legacy team_name + new team_id coexist
+```
+
+The adult team is seeded with code `adult`, all current player cards are backfilled with active access memberships, and current training/planning tables receive `team_id`. Sporting availability remains in `players.is_active` and does not disable account/team access. Legacy adult aliases include `Олімп Футзал` and `Дорослі`. Player Auth accounts are not created in this stage.
+
+See `docs/roles-and-access.md` and `docs/32-sprint-5.3.1-database-foundation.md`.
