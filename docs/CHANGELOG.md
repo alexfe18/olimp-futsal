@@ -415,3 +415,15 @@ Date: 2026-07-31
 - All 19 current adult-team players receive active access memberships, including the injured player who requires a future account.
 - Added adult-team alias mapping for the legacy `Дорослі` training value.
 - Updated SQL/Node verification and QA expectations for 19 contacts and 18 prepared accounts.
+
+## 0.6.0-alpha.3 — Sprint 05.3.2 Account Provisioning
+
+- Added a service-role-only atomic account finalization batch RPC.
+- Added safe dry-run/apply provisioning for 18 adult player Auth accounts.
+- Added club-confirmed phone/password accounts with local-only temporary credentials.
+- Added global `member` role assignment and profile ↔ player membership linking.
+- Added automatic rollback of Auth users created by a failed apply run.
+- Added explicit recovery/deprovisioning tooling and exact post-provisioning verification.
+- Preserved Григор’ян Едуард as sporting-inactive with active team access.
+- Kept Сокур Дмитро Юрійович as the single player without an account request.
+

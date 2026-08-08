@@ -1,6 +1,6 @@
 # Roles, Permissions & Team Access
 
-> Foundation version: Sprint 05.3.1 / `0.6.0-alpha.2`
+> Foundation version: Sprint 05.3.2 / `0.6.0-alpha.3`
 
 ## Core rule
 
@@ -72,13 +72,20 @@ app_private.can_manage_team_data(permission_code, team_id)
 
 ## Foundation limitations
 
-Sprint 05.3.1 creates the database model only. It does not yet:
+Sprint 05.3.2 provisions the adult pilot player accounts. It still does not yet:
 
 - replace current client-only AdminShell authorization;
 - remove broad legacy `authenticated` policies;
-- create player Auth accounts;
 - provide Users/Roles/Teams UI;
+- provide the player-facing login/password-change UX;
 - show training plans to players;
 - enable youth teams.
 
-Those changes are delivered by 05.3.2–05.3.7.
+Adult player provisioning rules:
+
+- every provisioned player receives global `member`;
+- every provisioned player profile is linked to the existing adult `player` membership;
+- membership access status remains independent from `players.is_active`;
+- temporary credentials are private local data and never committed to Git.
+
+The remaining changes continue in 05.3.3–05.3.7.
