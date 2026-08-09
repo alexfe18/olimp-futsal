@@ -1,10 +1,11 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
-import { supabase } from "@/lib/supabase";
+import { decideAdminRouteAccess } from "@/lib/auth/access-control";
 import type { PlayerAccessContext } from "@/lib/auth/player-auth";
+import { supabase } from "@/lib/supabase";
 
 export function AdminAccessGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -13,64 +14,86 @@ export function AdminAccessGate({ children }: { children: ReactNode }) {
 
   const isLoginPage = pathname === "/admin/login";
 
-  useEffect(() => {
+  const verify = useCallback(async () => {
     if (isLoginPage) {
       setAllowed(true);
       return;
     }
 
-    let active = true;
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    async function verify() {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (!active) return;
-
-      if (userError || !user) {
-        router.replace("/admin/login");
-        return;
-      }
-
-      const { data, error } = await supabase.rpc("get_my_access_context");
-
-      if (!active) return;
-
-      if (error || !data) {
-        await supabase.auth.signOut();
-        router.replace("/admin/login");
-        return;
-      }
-
-      const context = data as PlayerAccessContext;
-
-      if (context.account_status !== "active") {
-        await supabase.auth.signOut();
-        router.replace("/login");
-        return;
-      }
-
-      if (context.must_change_password) {
-        router.replace("/account/change-password");
-        return;
-      }
-
-      if (!context.can_access_admin) {
-        router.replace("/player");
-        return;
-      }
-
-      setAllowed(true);
+    if (userError || !user) {
+      setAllowed(false);
+      router.replace("/admin/login");
+      return;
     }
 
-    void verify();
+    const { data, error } = await supabase.rpc("get_my_access_context");
+
+    if (error || !data) {
+      console.error("Admin access context error:", {
+        message: error?.message ?? null,
+        code: error?.code ?? null,
+        details: error?.details ?? null,
+        hint: error?.hint ?? null,
+      });
+      await supabase.auth.signOut();
+      setAllowed(false);
+      router.replace("/admin/login");
+      return;
+    }
+
+    const context = data as PlayerAccessContext;
+    const decision = decideAdminRouteAccess(context);
+
+    if (decision.allow) {
+      setAllowed(true);
+      return;
+    }
+
+    setAllowed(false);
+
+    if (decision.signOut) {
+      await supabase.auth.signOut();
+    }
+
+    router.replace(decision.redirectTo);
+  }, [isLoginPage, router]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function initialize() {
+      if (!active) return;
+      await verify();
+    }
+
+    void initialize();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active || isLoginPage) return;
+
+      if (event === "SIGNED_OUT" || !session) {
+        setAllowed(false);
+        router.replace("/admin/login");
+        return;
+      }
+
+      if (event === "USER_UPDATED") {
+        void verify();
+      }
+    });
 
     return () => {
       active = false;
+      subscription.unsubscribe();
     };
-  }, [isLoginPage, router]);
+  }, [isLoginPage, router, verify]);
 
   if (!allowed) {
     return (

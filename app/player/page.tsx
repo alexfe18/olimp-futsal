@@ -1,89 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 
-import { supabase } from "@/lib/supabase";
-import type { PlayerAccessContext } from "@/lib/auth/player-auth";
+import { usePlayerSession } from "@/components/auth/PlayerAccessGate";
 
 export default function PlayerHomePage() {
-  const router = useRouter();
-  const [context, setContext] = useState<PlayerAccessContext | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-
-    async function initialize() {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (!active) return;
-
-      if (userError || !user) {
-        router.replace("/login");
-        return;
-      }
-
-      const { data, error } = await supabase.rpc("get_my_access_context");
-
-      if (!active) return;
-
-      if (error || !data) {
-        await supabase.auth.signOut();
-        router.replace("/login");
-        return;
-      }
-
-      const nextContext = data as PlayerAccessContext;
-
-      if (nextContext.account_status !== "active") {
-        await supabase.auth.signOut();
-        router.replace("/login");
-        return;
-      }
-
-      if (nextContext.must_change_password) {
-        router.replace("/account/change-password");
-        return;
-      }
-
-      await supabase.rpc("record_my_login");
-      setContext(nextContext);
-      setIsLoading(false);
-    }
-
-    void initialize();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" || !session) {
-        router.replace("/login");
-      }
-    });
-
-    return () => {
-      active = false;
-      subscription.unsubscribe();
-    };
-  }, [router]);
-
-  async function logout() {
-    await supabase.auth.signOut();
-    router.replace("/login");
-  }
-
-  if (isLoading || !context) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-5">
-        <p className="font-bold text-slate-500">Завантажуємо кабінет…</p>
-      </main>
-    );
-  }
+  const { context, logout } = usePlayerSession();
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
