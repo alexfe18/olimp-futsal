@@ -41,13 +41,13 @@ export default function PlayerHomePage() {
       <section className="mx-auto max-w-5xl px-5 py-9">
         <div className="grid gap-5 md:grid-cols-2">
           <Link
-            href="/training"
+            href="/player/trainings"
             className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
           >
             <span className="text-4xl">📅</span>
             <h2 className="mt-5 text-2xl font-black">Тренування</h2>
             <p className="mt-3 leading-7 text-slate-600">
-              Переглянути актуальне тренування та доступну інформацію команди.
+              Переглянути опубліковані тренування, дату, час і місце проведення.
             </p>
           </Link>
 
