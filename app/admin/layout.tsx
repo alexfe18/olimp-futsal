@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AdminShell from "./AdminShell";
+import { AdminAccessGate } from "@/components/auth/AdminAccessGate";
 
 export const metadata: Metadata = {
   title: {
@@ -18,5 +19,9 @@ export default function AdminLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <AdminShell>{children}</AdminShell>;
+  return (
+    <AdminAccessGate>
+      <AdminShell>{children}</AdminShell>
+    </AdminAccessGate>
+  );
 }
