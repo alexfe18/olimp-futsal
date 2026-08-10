@@ -492,44 +492,50 @@ export default function Training({ variant = "section" }: TrainingProps) {
             normalizePlayerName(normalizedName),
       );
 
-      if (existingRecord) {
-        const { error } = await supabase
-          .from("training_attendance")
-          .update({
-            player_id: selectedPlayerId,
-            player_name: normalizedName,
-            status: selectedStatus,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existingRecord.id)
-          .eq("training_id", training.id);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-        if (error) {
-          throw error;
-        }
-      } else {
-        const { error } = await supabase.from("training_attendance").insert({
-          training_id: training.id,
-          player_id: selectedPlayerId,
-          player_name: normalizedName,
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+
+      const response = await fetch("/api/attendance/respond", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          trainingId: training.id,
+          playerId: selectedPlayerId,
+          playerName: normalizedName,
           status: selectedStatus,
+        }),
+      });
+
+      const result = (await response.json()) as {
+        success?: boolean;
+        suppressed?: boolean;
+        message?: string;
+      };
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Не вдалося зберегти відповідь.",
+        );
+      }
+
+      if (result.suppressed) {
+        setFeedback({
+          type: "success",
+          title: "Локальний safe mode",
+          description:
+            result.message ||
+            "Відповідь перевірена, але не записана в базу.",
         });
-
-        if (error) {
-          if (error.code === "23505") {
-            await reloadAttendance(training.id);
-
-            setFeedback({
-              type: "error",
-              title: "Відповідь уже існує",
-              description: "Спробуйте оновити відповідь ще раз.",
-            });
-
-            return;
-          }
-
-          throw error;
-        }
+        return;
       }
 
       try {

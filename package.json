@@ -1,6 +1,6 @@
 {
   "name": "olimp-futsal",
-  "version": "0.6.0-alpha.7",
+  "version": "0.6.0-alpha.8",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
@@ -19,7 +19,8 @@
     "verify:player-login": "node scripts/sprint-05.3.3/verify-player-login-foundation.mjs",
     "verify:player-access-guards": "node scripts/sprint-05.3.4/verify-player-access-guards.mjs",
     "verify:player-training-visibility": "node scripts/sprint-05.3.5/verify-player-training-visibility.mjs",
-    "verify:push-environment-safety": "node scripts/sprint-05.3.5.2/verify-push-environment-safety.mjs"
+    "verify:push-environment-safety": "node scripts/sprint-05.3.5.2/verify-push-environment-safety.mjs",
+    "verify:player-attendance": "node scripts/sprint-05.3.6/verify-player-attendance.mjs"
   },
   "dependencies": {
     "@serwist/next": "^9.5.12",
