@@ -1,6 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import webPush from "web-push";
 
+import {
+  getPushDeliveryDecision,
+  type PushRuntimeEnvironment,
+  type PushSendMode,
+} from "@/lib/server/push-environment";
+
 type PushSubscriptionRecord = {
   id: string;
   endpoint: string;
@@ -20,11 +26,36 @@ export type PushSendResult = {
   sent: number;
   failed: number;
   removedExpired: number;
+  suppressed: boolean;
+  mode: PushSendMode;
+  runtime: PushRuntimeEnvironment;
+  reason: string;
 };
 
 export async function sendPushMessage(
   message: PushMessage,
 ): Promise<PushSendResult> {
+  const delivery = getPushDeliveryDecision();
+
+  if (!delivery.allowed) {
+    console.info("[push] SUPPRESSED", {
+      runtime: delivery.runtime,
+      mode: delivery.configuredMode,
+      reason: delivery.reason,
+      requestedTarget: message.playerId ? "single-player" : "broadcast",
+    });
+
+    return {
+      sent: 0,
+      failed: 0,
+      removedExpired: 0,
+      suppressed: true,
+      mode: delivery.configuredMode,
+      runtime: delivery.runtime,
+      reason: delivery.reason,
+    };
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -48,12 +79,17 @@ export async function sendPushMessage(
     },
   });
 
+  const effectivePlayerId =
+    delivery.configuredMode === "test"
+      ? delivery.testPlayerId
+      : message.playerId;
+
   let query = supabase
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth");
 
-  if (message.playerId) {
-    query = query.eq("player_id", message.playerId);
+  if (effectivePlayerId) {
+    query = query.eq("player_id", effectivePlayerId);
   }
 
   const { data, error } = await query;
@@ -65,8 +101,29 @@ export async function sendPushMessage(
   const subscriptions = (data ?? []) as PushSubscriptionRecord[];
 
   if (!subscriptions.length) {
-    throw new Error("Активних Push-підписок не знайдено.");
+    throw new Error(
+      delivery.configuredMode === "test"
+        ? "Для тестового гравця активних Push-підписок не знайдено."
+        : "Активних Push-підписок не знайдено.",
+    );
   }
+
+  console.info(
+    delivery.configuredMode === "test"
+      ? "[push] TEST DELIVERY"
+      : "[push] LIVE DELIVERY",
+    {
+      runtime: delivery.runtime,
+      mode: delivery.configuredMode,
+      target:
+        delivery.configuredMode === "test"
+          ? "configured-test-player"
+          : effectivePlayerId
+            ? "single-player"
+            : "broadcast",
+      subscriptions: subscriptions.length,
+    },
+  );
 
   webPush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
 
@@ -140,5 +197,9 @@ export async function sendPushMessage(
     sent,
     failed,
     removedExpired: expiredSubscriptionIds.length,
+    suppressed: false,
+    mode: delivery.configuredMode,
+    runtime: delivery.runtime,
+    reason: delivery.reason,
   };
 }

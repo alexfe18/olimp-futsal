@@ -164,11 +164,7 @@ export async function POST(request: Request) {
     const trainingId = payload.trainingId?.trim();
     const eventType = payload.eventType;
 
-    if (
-      !trainingId ||
-      !eventType ||
-      !supportedEventTypes.has(eventType)
-    ) {
+    if (!trainingId || !eventType || !supportedEventTypes.has(eventType)) {
       return NextResponse.json(
         { success: false, message: "Не вказано тренування або тип події." },
         { status: 400 },
@@ -219,10 +215,22 @@ export async function POST(request: Request) {
         .eq("id", eventData.id);
     }
 
+    if (result.suppressed) {
+      console.info("[push] TRAINING NOTIFICATION SUPPRESSED", {
+        trainingId: training.id,
+        eventType,
+        runtime: result.runtime,
+        mode: result.mode,
+        reason: result.reason,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       ...result,
-      message: `Надіслано сповіщень: ${result.sent}.`,
+      message: result.suppressed
+        ? `Push не надіслано (${result.reason}).`
+        : `Надіслано сповіщень: ${result.sent}.`,
     });
   } catch (error) {
     console.error("Training notification error:", error);
