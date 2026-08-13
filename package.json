@@ -1,6 +1,6 @@
 {
   "name": "olimp-futsal",
-  "version": "0.6.0-alpha.8",
+  "version": "0.6.0-alpha.21",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
@@ -39,6 +39,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "serwist": "^9.5.12",
+    "supabase": "^2.113.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

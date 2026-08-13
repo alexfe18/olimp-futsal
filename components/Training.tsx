@@ -3,10 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
+
 import AttendanceList from "@/components/training/AttendanceList";
-import TrainingForm from "@/components/training/TrainingForm";
 import PlayerIcon from "@/components/training/PlayerIcon";
+import TrainingForm from "@/components/training/TrainingForm";
 import {
   emptyFeedback,
   PLAYER_ID_STORAGE_KEY,
@@ -25,6 +25,88 @@ import {
   isAttendanceStatus,
   normalizePlayerName,
 } from "@/components/training/utils";
+import { supabase } from "@/lib/supabase";
+
+type AttendanceBoardViewer = {
+  authenticated: boolean;
+  profile_id: string | null;
+  player_id: string | null;
+  player_name: string | null;
+  shirt_number: number | null;
+  position: string | null;
+  can_view_names: boolean;
+  can_respond: boolean;
+  my_status: AttendanceStatus | null;
+  my_updated_at: string | null;
+};
+
+type AttendanceBoardCounts = {
+  yes: number;
+  maybe: number;
+  no: number;
+  total: number;
+  latest_updated_at: string | null;
+};
+
+type AttendanceBoardRow = {
+  id: string;
+  training_id: string;
+  player_id: string | null;
+  player_name: string;
+  status: AttendanceStatus;
+  updated_at: string;
+};
+
+type AttendanceBoardPayload = {
+  viewer: AttendanceBoardViewer;
+  counts: AttendanceBoardCounts;
+  attendance: AttendanceBoardRow[];
+};
+
+const LOGIN_RETURN_STORAGE_KEY = "olimp-player-login-return-to";
+
+const EMPTY_COUNTS: AttendanceBoardCounts = {
+  yes: 0,
+  maybe: 0,
+  no: 0,
+  total: 0,
+  latest_updated_at: null,
+};
+
+function normalizeBoardPayload(value: unknown): AttendanceBoardPayload {
+  const raw = (value ?? {}) as Partial<AttendanceBoardPayload>;
+  const viewer = (raw.viewer ?? {}) as Partial<AttendanceBoardViewer>;
+  const counts = (raw.counts ?? {}) as Partial<AttendanceBoardCounts>;
+
+  return {
+    viewer: {
+      authenticated: Boolean(viewer.authenticated),
+      profile_id: viewer.profile_id ?? null,
+      player_id: viewer.player_id ?? null,
+      player_name: viewer.player_name ?? null,
+      shirt_number:
+        typeof viewer.shirt_number === "number" ? viewer.shirt_number : null,
+      position: viewer.position ?? null,
+      can_view_names: Boolean(viewer.can_view_names),
+      can_respond: Boolean(viewer.can_respond),
+      my_status:
+        viewer.my_status === "yes" ||
+        viewer.my_status === "maybe" ||
+        viewer.my_status === "no"
+          ? viewer.my_status
+          : null,
+      my_updated_at: viewer.my_updated_at ?? null,
+    },
+    counts: {
+      yes: Number(counts.yes ?? 0),
+      maybe: Number(counts.maybe ?? 0),
+      no: Number(counts.no ?? 0),
+      total: Number(counts.total ?? 0),
+      latest_updated_at: counts.latest_updated_at ?? null,
+    },
+    attendance: Array.isArray(raw.attendance) ? raw.attendance : [],
+  };
+}
 
 export default function Training({ variant = "section" }: TrainingProps) {
   const isStandalone = variant === "standalone";
@@ -32,11 +114,15 @@ export default function Training({ variant = "section" }: TrainingProps) {
   const [training, setTraining] = useState<TrainingRecord | null>(null);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [players, setPlayers] = useState<PlayerRecord[]>([]);
+  const [boardViewer, setBoardViewer] = useState<AttendanceBoardViewer | null>(
+    null,
+  );
+  const [boardCounts, setBoardCounts] =
+    useState<AttendanceBoardCounts>(EMPTY_COUNTS);
 
   const [name, setName] = useState("");
   const [rememberedName, setRememberedName] = useState("");
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
-
   const [selectedStatus, setSelectedStatus] = useState<AttendanceStatus | null>(
     null,
   );
@@ -45,81 +131,76 @@ export default function Training({ variant = "section" }: TrainingProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [isLoginGateOpen, setIsLoginGateOpen] = useState(false);
 
-  useEffect(() => {
-    try {
-      const savedName = window.localStorage.getItem(PLAYER_NAME_STORAGE_KEY);
-      const savedPlayerId = window.localStorage.getItem(PLAYER_ID_STORAGE_KEY);
+  async function loadAttendanceBoard(trainingId: string) {
+    const { data, error } = await supabase.rpc("get_training_attendance_board", {
+      p_training_id: trainingId,
+    });
 
-      if (savedName?.trim()) {
-        // Hydrate player identity from browser-only storage after mount.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setName(savedName);
-        setRememberedName(savedName);
-      }
-
-      if (savedPlayerId) {
-        setSelectedPlayerId(savedPlayerId);
-      }
-    } catch (error) {
-      console.error("Player data loading error:", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadPlayers() {
-      const { data, error } = await supabase
-        .from("players")
-        .select(
-          "id, full_name, display_name, shirt_number, position, is_active",
-        )
-        .eq("is_active", true)
-        .order("full_name", {
-          ascending: true,
-        });
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (error) {
-        console.error("Players loading error:", error);
-        setPlayers([]);
-        return;
-      }
-
-      const normalizedPlayers: PlayerRecord[] = (data ?? []).map((player) => ({
-        id: player.id,
-        fullName: player.full_name,
-        displayName: player.display_name,
-        shirtNumber: player.shirt_number,
-        position: player.position,
-        isActive: player.is_active,
-      }));
-
-      setPlayers(normalizedPlayers);
-
-      const savedPlayerId = window.localStorage.getItem(PLAYER_ID_STORAGE_KEY);
-
-      const savedPlayer = normalizedPlayers.find(
-        (player) => player.id === savedPlayerId,
-      );
-
-      if (savedPlayer) {
-        setSelectedPlayerId(savedPlayer.id);
-        setName(savedPlayer.fullName);
-        setRememberedName(savedPlayer.fullName);
-      }
+    if (error) {
+      console.error("Protected attendance board loading error:", error);
+      throw new Error("Не вдалося завантажити стан команди.");
     }
 
-    void loadPlayers();
+    const payload = normalizeBoardPayload(data);
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    console.info("[training-board] viewer", {
+      authenticated: payload.viewer.authenticated,
+      canViewNames: payload.viewer.can_view_names,
+      canRespond: payload.viewer.can_respond,
+      hasPlayer: Boolean(payload.viewer.player_id),
+    });
+
+    setBoardViewer(payload.viewer);
+    setBoardCounts(payload.counts);
+
+    const normalizedAttendance: AttendanceRecord[] = payload.attendance.map(
+      (record) => ({
+        id: record.id,
+        trainingId: record.training_id,
+        playerId: record.player_id,
+        name: record.player_name,
+        status: record.status,
+        updatedAt: record.updated_at,
+      }),
+    );
+
+    setAttendance(normalizedAttendance);
+
+    if (payload.viewer.player_id && payload.viewer.player_name) {
+      const currentPlayer: PlayerRecord = {
+        id: payload.viewer.player_id,
+        fullName: payload.viewer.player_name,
+        displayName: payload.viewer.player_name,
+        shirtNumber: payload.viewer.shirt_number,
+        position: payload.viewer.position,
+        isActive: true,
+      };
+
+      setPlayers([currentPlayer]);
+      setSelectedPlayerId(currentPlayer.id);
+      setName(currentPlayer.fullName);
+      setRememberedName(currentPlayer.fullName);
+      setSelectedStatus(payload.viewer.my_status);
+
+      try {
+        window.localStorage.setItem(PLAYER_ID_STORAGE_KEY, currentPlayer.id);
+        window.localStorage.setItem(
+          PLAYER_NAME_STORAGE_KEY,
+          currentPlayer.fullName,
+        );
+      } catch (error) {
+        console.warn("Protected board local identity cache warning:", error);
+      }
+    } else {
+      setPlayers([]);
+      setSelectedPlayerId("");
+      setName("");
+      setRememberedName("");
+      setSelectedStatus(null);
+    }
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -137,18 +218,19 @@ export default function Training({ variant = "section" }: TrainingProps) {
           "id, title, starts_at, location, team_name, status, cancellation_reason",
         )
         .eq("is_active", true)
-        .order("starts_at", {
-          ascending: true,
-        })
+        .eq("status", "scheduled")
+        .order("starts_at", { ascending: true })
         .limit(1)
         .maybeSingle();
 
-      if (!isMounted) {
-        return;
-      }
+      if (!isMounted) return;
 
       if (trainingError) {
         console.error("Training loading error:", trainingError);
+        setTraining(null);
+        setAttendance([]);
+        setBoardViewer(null);
+        setBoardCounts(EMPTY_COUNTS);
         setLoadError("Не вдалося завантажити дані тренування.");
         setIsLoading(false);
         return;
@@ -157,6 +239,8 @@ export default function Training({ variant = "section" }: TrainingProps) {
       if (!trainingData) {
         setTraining(null);
         setAttendance([]);
+        setBoardViewer(null);
+        setBoardCounts(EMPTY_COUNTS);
         setLoadError("Активне тренування поки не додано.");
         setIsLoading(false);
         return;
@@ -174,42 +258,50 @@ export default function Training({ variant = "section" }: TrainingProps) {
 
       setTraining(normalizedTraining);
 
-      const { data: attendanceData, error: attendanceError } = await supabase
-        .from("training_attendance")
-        .select("id, training_id, player_id, player_name, status, updated_at")
-        .eq("training_id", trainingData.id)
-        .order("updated_at", {
-          ascending: false,
-        });
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (attendanceError) {
-        console.error("Attendance loading error:", attendanceError);
-        setLoadError("Не вдалося завантажити відповіді учасників.");
+      try {
+        await loadAttendanceBoard(trainingData.id);
+      } catch (error) {
+        if (!isMounted) return;
         setAttendance([]);
-        setIsLoading(false);
-        return;
+        setBoardViewer(null);
+        setBoardCounts(EMPTY_COUNTS);
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Не вдалося завантажити стан команди.",
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
-
-      const normalizedAttendance: AttendanceRecord[] = (
-        attendanceData ?? []
-      ).map((record) => ({
-        id: record.id,
-        trainingId: record.training_id,
-        playerId: record.player_id,
-        name: record.player_name,
-        status: record.status as AttendanceStatus,
-        updatedAt: record.updated_at,
-      }));
-
-      setAttendance(normalizedAttendance);
-      setIsLoading(false);
     }
 
-    void loadTrainingData(true);
+    let authReloadTimer: number | null = null;
+
+    async function bootstrapAuthenticatedBoard() {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (!isMounted) return;
+
+      if (sessionError) {
+        console.error("[training-board] session bootstrap error:", sessionError);
+      }
+
+      console.info("[training-board] session ready", {
+        authenticated: Boolean(session?.user),
+        expiresInSeconds: session?.expires_at
+          ? session.expires_at - Math.floor(Date.now() / 1000)
+          : null,
+      });
+
+      await loadTrainingData(true);
+    }
+
+    void bootstrapAuthenticatedBoard();
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
@@ -219,81 +311,85 @@ export default function Training({ variant = "section" }: TrainingProps) {
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
+    const {
+      data: { subscription: authSubscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.info("[training-board] auth event", {
+        event,
+        authenticated: Boolean(session?.user),
+        expiresInSeconds: session?.expires_at
+          ? session.expires_at - Math.floor(Date.now() / 1000)
+          : null,
+      });
+
+      // The initial board load explicitly waits for getSession(), so
+      // INITIAL_SESSION must not start a competing Supabase request.
+      if (event === "INITIAL_SESSION") return;
+
+      if (authReloadTimer !== null) {
+        window.clearTimeout(authReloadTimer);
+      }
+
+      // Defer data calls out of the Supabase auth callback.
+      authReloadTimer = window.setTimeout(() => {
+        if (!isMounted) return;
+        void loadTrainingData();
+      }, 0);
+    });
+
     const realtimeChannel = supabase
       .channel(
         isStandalone
-          ? "olimp-training-page-realtime"
-          : "olimp-training-section-realtime",
+          ? "olimp-protected-training-page-realtime"
+          : "olimp-protected-training-section-realtime",
       )
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "trainings",
-        },
+        { event: "*", schema: "public", table: "trainings" },
         () => {
           void loadTrainingData();
         },
       )
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "training_attendance",
-        },
+        { event: "*", schema: "public", table: "training_attendance" },
         () => {
           void loadTrainingData();
         },
       )
       .subscribe((status, error) => {
         if (error) {
-          console.error("Realtime subscription error:", error);
+          console.error("Protected board realtime subscription error:", error);
         }
 
         if (status === "SUBSCRIBED") {
-          console.log("Supabase Realtime connected");
+          console.log("Protected training board realtime connected");
         }
       });
 
     return () => {
       isMounted = false;
-
       document.removeEventListener("visibilitychange", handleVisibilityChange);
 
+      if (authReloadTimer !== null) {
+        window.clearTimeout(authReloadTimer);
+      }
+
+      authSubscription.unsubscribe();
       void supabase.removeChannel(realtimeChannel);
     };
   }, [isStandalone]);
 
   const currentPlayerRecord = useMemo(() => {
-    if (selectedPlayerId) {
-      const byPlayerId = attendance.find(
-        (record) => record.playerId === selectedPlayerId,
-      );
-
-      if (byPlayerId) {
-        return byPlayerId;
-      }
-    }
-
-    const normalizedName = normalizePlayerName(name);
-
-    if (!normalizedName) {
-      return null;
-    }
+    if (!selectedPlayerId) return null;
 
     return (
-      attendance.find(
-        (record) => normalizePlayerName(record.name) === normalizedName,
-      ) ?? null
+      attendance.find((record) => record.playerId === selectedPlayerId) ?? null
     );
-  }, [attendance, name, selectedPlayerId]);
+  }, [attendance, selectedPlayerId]);
 
   useEffect(() => {
-    if (!training || (!selectedPlayerId && !name.trim())) {
-      // Reset the controlled RSVP choice when there is no active identity/event.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!training || !selectedPlayerId) {
       setSelectedStatus(null);
       return;
     }
@@ -303,9 +399,14 @@ export default function Training({ variant = "section" }: TrainingProps) {
       return;
     }
 
+    if (boardViewer?.my_status) {
+      setSelectedStatus(boardViewer.my_status);
+      return;
+    }
+
     try {
       const savedStatus = window.localStorage.getItem(
-        getStatusStorageKey(training.id, selectedPlayerId || name),
+        getStatusStorageKey(training.id, selectedPlayerId),
       );
 
       if (isAttendanceStatus(savedStatus)) {
@@ -317,7 +418,7 @@ export default function Training({ variant = "section" }: TrainingProps) {
       console.error("Attendance status loading error:", error);
       setSelectedStatus(null);
     }
-  }, [training, name, selectedPlayerId, currentPlayerRecord]);
+  }, [training, selectedPlayerId, currentPlayerRecord, boardViewer?.my_status]);
 
   const groupedAttendance = useMemo(() => {
     const sortByName = (records: AttendanceRecord[]) =>
@@ -334,19 +435,7 @@ export default function Training({ variant = "section" }: TrainingProps) {
     };
   }, [attendance]);
 
-  const latestUpdate = useMemo(() => {
-    if (!attendance.length) {
-      return null;
-    }
-
-    return [...attendance].sort(
-      (first, second) =>
-        new Date(second.updatedAt).getTime() -
-        new Date(first.updatedAt).getTime(),
-    )[0].updatedAt;
-  }, [attendance]);
-
-  const formattedLatestUpdate = latestUpdate
+  const formattedLatestUpdate = boardCounts.latest_updated_at
     ? new Intl.DateTimeFormat("uk-UA", {
         day: "2-digit",
         month: "2-digit",
@@ -354,13 +443,14 @@ export default function Training({ variant = "section" }: TrainingProps) {
         hour: "2-digit",
         minute: "2-digit",
         timeZone: "Europe/Kyiv",
-      }).format(new Date(latestUpdate))
+      }).format(new Date(boardCounts.latest_updated_at))
     : null;
 
   const formattedTrainingDate = training
     ? new Intl.DateTimeFormat("uk-UA", {
         day: "numeric",
         month: "long",
+        year: "numeric",
         timeZone: "Europe/Kyiv",
       }).format(new Date(training.startsAt))
     : "—";
@@ -377,97 +467,23 @@ export default function Training({ variant = "section" }: TrainingProps) {
   const isTrainingCancelled = training?.status === "cancelled";
   const isTrainingCompleted = training?.status === "completed";
 
-  useEffect(() => {
-    if (isTrainingCancelled || isTrainingCompleted) {
-      // Lifecycle changes invalidate any previously displayed submit feedback.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFeedback(emptyFeedback);
-    }
-  }, [isTrainingCancelled, isTrainingCompleted]);
-
   const isSubmitDisabled =
     !training ||
+    !boardViewer?.can_respond ||
     !selectedPlayerId ||
     !selectedStatus ||
     isSubmitting ||
     isTrainingCancelled ||
     isTrainingCompleted;
 
-  async function reloadAttendance(trainingId: string) {
-    const { data, error } = await supabase
-      .from("training_attendance")
-      .select("id, training_id, player_id, player_name, status, updated_at")
-      .eq("training_id", trainingId)
-      .order("updated_at", {
-        ascending: false,
-      });
-
-    if (error) {
-      console.error("Attendance refresh error:", error);
-      throw new Error("Не вдалося оновити список учасників.");
-    }
-
-    const normalizedAttendance: AttendanceRecord[] = (data ?? []).map(
-      (record) => ({
-        id: record.id,
-        trainingId: record.training_id,
-        playerId: record.player_id,
-        name: record.player_name,
-        status: record.status as AttendanceStatus,
-        updatedAt: record.updated_at,
-      }),
-    );
-
-    setAttendance(normalizedAttendance);
-  }
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const normalizedName = name.trim();
-
-    if (!training) {
+    if (!training || !boardViewer?.can_respond || !selectedPlayerId) {
       setFeedback({
         type: "error",
-        title: "Тренування не знайдено",
-        description: "Активне тренування поки не додано.",
-      });
-      return;
-    }
-
-    if (isTrainingCancelled) {
-      setFeedback({
-        type: "error",
-        title: "Тренування скасовано",
-        description:
-          training.cancellationReason || "Голосування для цієї події закрито.",
-      });
-      return;
-    }
-
-    if (isTrainingCompleted) {
-      setFeedback({
-        type: "error",
-        title: "Тренування завершено",
-        description: "Голосування для цієї події вже закрито.",
-      });
-      return;
-    }
-
-    if (!selectedPlayerId) {
-      setFeedback({
-        type: "error",
-        title: "Оберіть себе",
-        description: "Знайдіть своє ім’я у списку гравців.",
-      });
-      return;
-    }
-
-    if (normalizedName.length < 2) {
-      setFeedback({
-        type: "error",
-        title: "Перевірте ім’я",
-        description: "Не вдалося визначити обраного гравця.",
+        title: "Потрібна авторизація",
+        description: "Увійдіть як гравець команди, щоб зберегти відповідь.",
       });
       return;
     }
@@ -485,32 +501,22 @@ export default function Training({ variant = "section" }: TrainingProps) {
     setFeedback(emptyFeedback);
 
     try {
-      const existingRecord = attendance.find(
-        (record) =>
-          record.playerId === selectedPlayerId ||
-          normalizePlayerName(record.name) ===
-            normalizePlayerName(normalizedName),
-      );
-
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-
-      if (session?.access_token) {
-        headers.Authorization = `Bearer ${session.access_token}`;
+      if (!session?.access_token) {
+        throw new Error("Authentication required");
       }
 
       const response = await fetch("/api/attendance/respond", {
         method: "POST",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           trainingId: training.id,
-          playerId: selectedPlayerId,
-          playerName: normalizedName,
           status: selectedStatus,
         }),
       });
@@ -522,9 +528,7 @@ export default function Training({ variant = "section" }: TrainingProps) {
       };
 
       if (!response.ok || !result.success) {
-        throw new Error(
-          result.message || "Не вдалося зберегти відповідь.",
-        );
+        throw new Error(result.message || "Не вдалося зберегти відповідь.");
       }
 
       if (result.suppressed) {
@@ -532,16 +536,12 @@ export default function Training({ variant = "section" }: TrainingProps) {
           type: "success",
           title: "Локальний safe mode",
           description:
-            result.message ||
-            "Відповідь перевірена, але не записана в базу.",
+            result.message || "Відповідь перевірена, але не записана в базу.",
         });
         return;
       }
 
       try {
-        window.localStorage.setItem(PLAYER_ID_STORAGE_KEY, selectedPlayerId);
-        window.localStorage.setItem(PLAYER_NAME_STORAGE_KEY, normalizedName);
-
         window.localStorage.setItem(
           getStatusStorageKey(training.id, selectedPlayerId),
           selectedStatus,
@@ -550,15 +550,13 @@ export default function Training({ variant = "section" }: TrainingProps) {
         console.error("Local storage saving error:", storageError);
       }
 
-      setName(normalizedName);
-      setRememberedName(normalizedName);
+      setFeedback(
+        getSuccessFeedback(selectedStatus, Boolean(currentPlayerRecord)),
+      );
 
-      setFeedback(getSuccessFeedback(selectedStatus, Boolean(existingRecord)));
-
-      await reloadAttendance(training.id);
+      await loadAttendanceBoard(training.id);
     } catch (error) {
-      console.error("Attendance submit error:", error);
-
+      console.error("Protected attendance submit error:", error);
       setFeedback({
         type: "error",
         title: "Не вдалося зберегти відповідь",
@@ -570,37 +568,37 @@ export default function Training({ variant = "section" }: TrainingProps) {
   }
 
   function handlePlayerSelect(player: PlayerRecord) {
+    if (!boardViewer?.can_respond || player.id !== boardViewer.player_id) {
+      return;
+    }
+
     setSelectedPlayerId(player.id);
     setName(player.fullName);
     setRememberedName(player.fullName);
     setFeedback(emptyFeedback);
-
-    try {
-      window.localStorage.setItem(PLAYER_ID_STORAGE_KEY, player.id);
-      window.localStorage.setItem(PLAYER_NAME_STORAGE_KEY, player.fullName);
-    } catch (error) {
-      console.error("Player saving error:", error);
-    }
   }
 
   function handleClearPlayer() {
-    setSelectedPlayerId("");
-    setName("");
-    setRememberedName("");
-    setSelectedStatus(null);
-    setFeedback(emptyFeedback);
+    if (!boardViewer?.can_respond || !players[0]) return;
 
-    try {
-      window.localStorage.removeItem(PLAYER_ID_STORAGE_KEY);
-      window.localStorage.removeItem(PLAYER_NAME_STORAGE_KEY);
-    } catch (error) {
-      console.error("Player clearing error:", error);
-    }
+    const player = players[0];
+    setSelectedPlayerId(player.id);
+    setName(player.fullName);
+    setRememberedName(player.fullName);
+    setFeedback(emptyFeedback);
   }
 
   function handleStatusSelect(status: AttendanceStatus) {
     setSelectedStatus(status);
     setFeedback(emptyFeedback);
+  }
+
+  function rememberTrainingReturn() {
+    try {
+      window.sessionStorage.setItem(LOGIN_RETURN_STORAGE_KEY, "/training");
+    } catch (error) {
+      console.warn("Login return target saving warning:", error);
+    }
   }
 
   return (
@@ -635,7 +633,6 @@ export default function Training({ variant = "section" }: TrainingProps) {
                 <span className="block text-[10px] font-black uppercase tracking-[0.25em] text-sky-300 sm:text-xs">
                   Разом до Вершин
                 </span>
-
                 <span className="mt-1 block truncate text-lg font-black sm:text-2xl">
                   Олімп Футзал
                 </span>
@@ -663,7 +660,6 @@ export default function Training({ variant = "section" }: TrainingProps) {
             <p className="text-sm font-bold uppercase tracking-[0.28em] text-sky-600">
               Командний простір
             </p>
-
             <h1
               className={`mt-4 font-black leading-tight tracking-tight ${
                 isStandalone
@@ -673,15 +669,14 @@ export default function Training({ variant = "section" }: TrainingProps) {
             >
               Найближче тренування
             </h1>
-
             <p
               className={`max-w-xl leading-8 text-slate-600 ${
                 isStandalone ? "mt-4 text-base sm:text-lg" : "mt-6 text-lg"
               }`}
             >
-              {isStandalone
-                ? "Оберіть себе у списку гравців та підтвердьте участь. Наступного разу ваш профіль буде вибрано автоматично."
-                : "Перегляньте інформацію про найближче тренування та підтвердьте свою участь. Для швидкого голосування відкрийте окрему сторінку."}
+              {boardViewer?.can_respond
+                ? "Ви увійшли як гравець команди. Відповідь тут синхронізується з вашим кабінетом."
+                : "Інформація про тренування та кількість відповідей доступні всім. Імена учасників і голосування — лише гравцям команди після входу."}
             </p>
 
             {!isStandalone && (
@@ -690,17 +685,12 @@ export default function Training({ variant = "section" }: TrainingProps) {
                 className="group mt-6 inline-flex min-h-12 items-center justify-center rounded-full bg-slate-950 px-6 py-3 font-black text-white transition hover:-translate-y-0.5 hover:bg-sky-500 hover:text-slate-950"
               >
                 Відкрити сторінку тренування
-                <span
-                  aria-hidden="true"
-                  className="ml-2 transition-transform duration-300 group-hover:translate-x-1"
-                >
-                  →
-                </span>
+                <span aria-hidden="true" className="ml-2">→</span>
               </Link>
             )}
 
             <div
-              className={`overflow-hidden rounded-3xl bg-slate-950 text-white shadow-xl transition-shadow duration-300 hover:shadow-2xl ${
+              className={`overflow-hidden rounded-3xl bg-slate-950 text-white shadow-xl ${
                 isStandalone ? "mt-6 p-6 sm:p-7" : "mt-10 p-7 sm:p-9"
               }`}
             >
@@ -708,12 +698,10 @@ export default function Training({ variant = "section" }: TrainingProps) {
                 <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-400 text-slate-950">
                   <PlayerIcon />
                 </span>
-
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-300">
                     Наступна подія
                   </p>
-
                   <h2 className="mt-1 text-xl font-black">
                     {isLoading
                       ? "Завантаження..."
@@ -722,63 +710,63 @@ export default function Training({ variant = "section" }: TrainingProps) {
                 </div>
               </div>
 
-              {isTrainingCancelled && (
-                <div className="mt-6 rounded-2xl border border-red-400/30 bg-red-500/10 px-5 py-4">
-                  <p className="font-black text-red-200">
-                    Тренування скасовано
-                  </p>
-
-                  {training?.cancellationReason && (
-                    <p className="mt-2 text-sm leading-6 text-red-100">
-                      Причина: {training.cancellationReason}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <div
-                className={`grid ${
-                  isStandalone ? "mt-6 gap-4 sm:grid-cols-4" : "mt-8 gap-5"
-                }`}
-              >
+              <div className={`grid ${isStandalone ? "mt-6 gap-4 sm:grid-cols-4" : "mt-8 gap-5"}`}>
                 <div>
                   <span className="block text-sm text-slate-400">Дата</span>
                   <strong className="mt-1 block text-xl capitalize">
                     {isLoading ? "Завантаження..." : formattedTrainingDate}
                   </strong>
                 </div>
-
                 <div>
                   <span className="block text-sm text-slate-400">Час</span>
                   <strong className="mt-1 block text-xl">
                     {isLoading ? "Завантаження..." : formattedTrainingTime}
                   </strong>
                 </div>
-
                 <div>
                   <span className="block text-sm text-slate-400">Місце</span>
                   <strong className="mt-1 block text-xl">
-                    {isLoading
-                      ? "Завантаження..."
-                      : (training?.location ?? "—")}
+                    {isLoading ? "Завантаження..." : (training?.location ?? "—")}
                   </strong>
                 </div>
-
                 <div>
                   <span className="block text-sm text-slate-400">Команда</span>
                   <strong className="mt-1 block text-xl">
-                    {isLoading
-                      ? "Завантаження..."
-                      : (training?.teamName ?? "—")}
+                    {isLoading ? "Завантаження..." : (training?.teamName ?? "—")}
                   </strong>
                 </div>
               </div>
 
-              <div className="mt-6 flex items-center justify-between rounded-2xl bg-white/[0.06] px-5 py-4">
-                <span className="text-sm text-slate-300">Уже відповіли</span>
-                <strong className="text-2xl text-sky-400">
-                  {attendance.length}
-                </strong>
+              <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="rounded-2xl bg-emerald-400/10 px-3 py-4 text-center">
+                  <strong className="block text-2xl text-emerald-300">
+                    {boardCounts.yes}
+                  </strong>
+                  <span className="mt-1 block text-xs font-black text-emerald-100">
+                    Будуть
+                  </span>
+                </div>
+                <div className="rounded-2xl bg-amber-400/10 px-3 py-4 text-center">
+                  <strong className="block text-2xl text-amber-300">
+                    {boardCounts.maybe}
+                  </strong>
+                  <span className="mt-1 block text-xs font-black text-amber-100">
+                    Під питанням
+                  </span>
+                </div>
+                <div className="rounded-2xl bg-rose-400/10 px-3 py-4 text-center">
+                  <strong className="block text-2xl text-rose-300">
+                    {boardCounts.no}
+                  </strong>
+                  <span className="mt-1 block text-xs font-black text-rose-100">
+                    Не будуть
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between rounded-2xl bg-white/[0.06] px-5 py-4">
+                <span className="text-sm text-slate-300">Всього відповідей</span>
+                <strong className="text-2xl text-sky-400">{boardCounts.total}</strong>
               </div>
 
               {formattedLatestUpdate && (
@@ -796,32 +784,105 @@ export default function Training({ variant = "section" }: TrainingProps) {
           </div>
 
           <div>
-            <TrainingForm
-              players={players}
-              selectedPlayerId={selectedPlayerId}
-              rememberedName={rememberedName}
-              currentStatus={currentPlayerRecord?.status ?? null}
-              selectedStatus={selectedStatus}
-              feedback={feedback}
-              hasTraining={
-                Boolean(training) &&
-                !isTrainingCancelled &&
-                !isTrainingCompleted
-              }
-              isLoading={isLoading}
-              isSubmitting={isSubmitting}
-              isSubmitDisabled={isSubmitDisabled}
-              onPlayerSelect={handlePlayerSelect}
-              onClearPlayer={handleClearPlayer}
-              onStatusSelect={handleStatusSelect}
-              onSubmit={handleSubmit}
-            />
+            {boardViewer?.can_respond ? (
+              <>
+                <TrainingForm
+                  players={players}
+                  selectedPlayerId={selectedPlayerId}
+                  rememberedName={rememberedName}
+                  currentStatus={currentPlayerRecord?.status ?? boardViewer.my_status}
+                  selectedStatus={selectedStatus}
+                  feedback={feedback}
+                  hasTraining={Boolean(training)}
+                  isLoading={isLoading}
+                  isSubmitting={isSubmitting}
+                  isSubmitDisabled={isSubmitDisabled}
+                  onPlayerSelect={handlePlayerSelect}
+                  onClearPlayer={handleClearPlayer}
+                  onStatusSelect={handleStatusSelect}
+                  onSubmit={handleSubmit}
+                />
 
-            <AttendanceList
-              groupedAttendance={groupedAttendance}
-              currentPlayerName={name}
-              isLoading={isLoading}
-            />
+                {boardViewer.can_view_names && (
+                  <div className="mt-6 rounded-[2rem] border border-sky-100 bg-sky-50/50 p-4 sm:p-5">
+                    <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-700">
+                          Team Attendance Board
+                        </p>
+                        <h2 className="mt-2 text-2xl font-black">
+                          Відповіді команди
+                        </h2>
+                      </div>
+                      <p className="text-sm font-bold text-slate-500">
+                        Імена бачать лише учасники команди.
+                      </p>
+                    </div>
+
+                    <AttendanceList
+                      groupedAttendance={groupedAttendance}
+                      currentPlayerName={name}
+                      isLoading={isLoading}
+                    />
+                  </div>
+                )}
+              </>
+            ) : boardViewer?.authenticated ? (
+              <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 shadow-xl sm:p-8">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500 text-2xl font-black text-slate-950">
+                  !
+                </div>
+                <p className="mt-6 text-xs font-black uppercase tracking-[0.22em] text-amber-800">
+                  Потрібна перевірка доступу
+                </p>
+                <h2 className="mt-3 text-2xl font-black sm:text-3xl">
+                  Ви увійшли, але профіль гравця не визначено
+                </h2>
+                <p className="mt-4 leading-7 text-amber-950">
+                  Сесія Futsal OS активна, але для цього тренування не знайдено
+                  активного профілю гравця з правом відповіді. Оновіть сторінку.
+                  Якщо повідомлення залишиться, перевіримо membership і роль гравця.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl sm:p-8">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-2xl text-white">
+                  🔒
+                </div>
+                <p className="mt-6 text-xs font-black uppercase tracking-[0.22em] text-sky-700">
+                  Захищений командний простір
+                </p>
+                <h2 className="mt-3 text-2xl font-black sm:text-3xl">
+                  Склад і голосування доступні гравцям
+                </h2>
+                <p className="mt-4 leading-7 text-slate-600">
+                  Ви можете бачити кількість відповідей. Щоб переглянути імена та відповісти на тренування, увійдіть до Futsal OS як гравець «Олімп Футзал».
+                </p>
+
+                <div className="mt-6 grid grid-cols-3 gap-2">
+                  <div className="rounded-2xl bg-emerald-50 px-3 py-4 text-center text-emerald-900">
+                    <strong className="block text-2xl">{boardCounts.yes}</strong>
+                    <span className="text-xs font-black">Будуть</span>
+                  </div>
+                  <div className="rounded-2xl bg-amber-50 px-3 py-4 text-center text-amber-900">
+                    <strong className="block text-2xl">{boardCounts.maybe}</strong>
+                    <span className="text-xs font-black">Під питанням</span>
+                  </div>
+                  <div className="rounded-2xl bg-rose-50 px-3 py-4 text-center text-rose-900">
+                    <strong className="block text-2xl">{boardCounts.no}</strong>
+                    <span className="text-xs font-black">Не будуть</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsLoginGateOpen(true)}
+                  className="mt-7 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-slate-950 px-6 font-black text-white transition hover:bg-sky-500 hover:text-slate-950"
+                >
+                  Відповісти на тренування →
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -831,6 +892,56 @@ export default function Training({ variant = "section" }: TrainingProps) {
           </footer>
         )}
       </div>
+
+      {isLoginGateOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="training-login-gate-title"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 px-4 py-8 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsLoginGateOpen(false);
+            }
+          }}
+        >
+          <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl sm:p-8">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-700">
+              Олімп Футзал
+            </p>
+            <h2 id="training-login-gate-title" className="mt-3 text-2xl font-black">
+              Ви гравець Олімп Футзал?
+            </h2>
+            <p className="mt-3 leading-7 text-slate-600">
+              Після входу ви повернетеся до тренування та зможете проголосувати від свого профілю.
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <Link
+                href="/login?next=/training"
+                onClick={rememberTrainingReturn}
+                className="inline-flex min-h-12 items-center justify-center rounded-full bg-sky-400 px-5 font-black text-slate-950 transition hover:bg-sky-300"
+              >
+                Так, увійти
+              </Link>
+              <Link
+                href="/"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-slate-200 px-5 font-black text-slate-700 transition hover:bg-slate-50"
+              >
+                Ні, на головну
+              </Link>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsLoginGateOpen(false)}
+              className="mt-4 w-full text-sm font-bold text-slate-500 underline decoration-slate-300 underline-offset-4"
+            >
+              Залишитися на сторінці
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

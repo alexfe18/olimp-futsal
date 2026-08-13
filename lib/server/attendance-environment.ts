@@ -1,4 +1,6 @@
-export type AttendanceWriteMode = "disabled" | "test" | "live";
+import { getPlayerLoginEnvironment } from "../auth/login-environment";
+
+export type AttendanceWriteMode = "disabled" | "test" | "dev" | "live";
 
 export type AttendanceRuntimeEnvironment =
   | "local"
@@ -15,12 +17,16 @@ export type AttendanceWriteDecision = {
     | "test_target_not_configured"
     | "test_target_mismatch"
     | "test_write"
+    | "dev_requires_authenticated_player"
+    | "dev_environment_invalid"
+    | "dev_write"
     | "live_write";
 };
 
 const SUPPORTED_MODES = new Set<AttendanceWriteMode>([
   "disabled",
   "test",
+  "dev",
   "live",
 ]);
 
@@ -55,6 +61,7 @@ function getRuntimeEnvironment(): AttendanceRuntimeEnvironment {
 export function getAttendanceWriteDecision(input: {
   playerId: string;
   trainingId: string;
+  authenticated: boolean;
 }): AttendanceWriteDecision {
   const configuredMode = getConfiguredMode();
   const runtime = getRuntimeEnvironment();
@@ -65,6 +72,59 @@ export function getAttendanceWriteDecision(input: {
       configuredMode,
       runtime,
       reason: "attendance_disabled",
+    };
+  }
+
+  if (configuredMode === "dev") {
+    if (!input.authenticated) {
+      return {
+        allowed: false,
+        configuredMode,
+        runtime,
+        reason: "dev_requires_authenticated_player",
+      };
+    }
+
+    // Reuse the existing login environment guard so DEV attendance can only
+    // target the isolated non-Production Supabase project.
+    if (runtime === "production") {
+      return {
+        allowed: false,
+        configuredMode,
+        runtime,
+        reason: "dev_environment_invalid",
+      };
+    }
+
+    try {
+      const loginEnvironment = getPlayerLoginEnvironment();
+
+      if (
+        !loginEnvironment.isNonProduction ||
+        (loginEnvironment.appEnvironment !== "development" &&
+          loginEnvironment.appEnvironment !== "preview")
+      ) {
+        return {
+          allowed: false,
+          configuredMode,
+          runtime,
+          reason: "dev_environment_invalid",
+        };
+      }
+    } catch {
+      return {
+        allowed: false,
+        configuredMode,
+        runtime,
+        reason: "dev_environment_invalid",
+      };
+    }
+
+    return {
+      allowed: true,
+      configuredMode,
+      runtime,
+      reason: "dev_write",
     };
   }
 

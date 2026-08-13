@@ -6,14 +6,17 @@ import { useEffect, useState } from "react";
 
 import { usePlayerSession } from "@/components/auth/PlayerAccessGate";
 import {
+  createEmptyTrainingAttendanceSummary,
   formatTrainingDate,
   formatTrainingTime,
+  loadPlayerTrainingAttendancePresentation,
   loadPlayerVisibleTraining,
+  type PlayerTrainingAttendanceSummary,
   type PlayerVisibleTraining,
 } from "@/lib/player/training-visibility";
 import { supabase } from "@/lib/supabase";
 
-type PlayerAttendanceStatus = "yes" | "no";
+type PlayerAttendanceStatus = "yes" | "maybe" | "no";
 
 type PlayerAttendanceResult = {
   training_id: string;
@@ -28,9 +31,19 @@ type AttendanceMessage = {
   text: string;
 };
 
+function isPlayerAttendanceStatus(
+  status: string | null | undefined,
+): status is PlayerAttendanceStatus {
+  return status === "yes" || status === "maybe" || status === "no";
+}
+
 function getAttendanceLabel(status: PlayerAttendanceStatus | null) {
   if (status === "yes") {
     return "Ви будете на тренуванні";
+  }
+
+  if (status === "maybe") {
+    return "Ваша участь під питанням";
   }
 
   if (status === "no") {
@@ -38,6 +51,18 @@ function getAttendanceLabel(status: PlayerAttendanceStatus | null) {
   }
 
   return "Відповідь ще не надано";
+}
+
+function getAttendanceSuccessMessage(status: PlayerAttendanceStatus) {
+  if (status === "yes") {
+    return "Готово. Ви підтвердили участь у тренуванні.";
+  }
+
+  if (status === "maybe") {
+    return "Готово. Ви поки не впевнені щодо участі у тренуванні.";
+  }
+
+  return "Готово. Ви повідомили, що не будете на тренуванні.";
 }
 
 function formatAttendanceUpdatedAt(value: string | null) {
@@ -56,6 +81,7 @@ export default function PlayerTrainingDetailsPage() {
   const params = useParams<{ trainingId: string }>();
   const { context } = usePlayerSession();
   const teamId = context.team?.id ?? null;
+  const playerId = context.player?.id ?? null;
   const trainingId = params.trainingId;
 
   const [training, setTraining] = useState<PlayerVisibleTraining | null>(null);
@@ -65,6 +91,10 @@ export default function PlayerTrainingDetailsPage() {
   const [attendanceStatus, setAttendanceStatus] =
     useState<PlayerAttendanceStatus | null>(null);
   const [attendanceUpdatedAt, setAttendanceUpdatedAt] =
+    useState<string | null>(null);
+  const [attendanceSummary, setAttendanceSummary] =
+    useState<PlayerTrainingAttendanceSummary | null>(null);
+  const [attendanceSummaryMessage, setAttendanceSummaryMessage] =
     useState<string | null>(null);
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
   const [isAttendanceSaving, setIsAttendanceSaving] = useState(false);
@@ -123,12 +153,15 @@ export default function PlayerTrainingDetailsPage() {
         if (active) {
           setAttendanceStatus(null);
           setAttendanceUpdatedAt(null);
+          setAttendanceSummary(null);
+          setAttendanceSummaryMessage(null);
         }
         return;
       }
 
       setIsAttendanceLoading(true);
       setAttendanceMessage(null);
+      setAttendanceSummaryMessage(null);
 
       const { data, error } = await supabase.rpc(
         "get_my_training_attendance",
@@ -153,19 +186,42 @@ export default function PlayerTrainingDetailsPage() {
           tone: "error",
           text: "Не вдалося завантажити вашу відповідь.",
         });
-        setIsAttendanceLoading(false);
-        return;
+      } else {
+        const result = data as PlayerAttendanceResult | null;
+
+        setAttendanceStatus(
+          isPlayerAttendanceStatus(result?.status) ? result.status : null,
+        );
+        setAttendanceUpdatedAt(result?.updated_at ?? null);
       }
 
-      const result = data as PlayerAttendanceResult | null;
+      try {
+        const presentation = await loadPlayerTrainingAttendancePresentation(
+          [training.id],
+          playerId,
+        );
 
-      setAttendanceStatus(
-        result?.status === "yes" || result?.status === "no"
-          ? result.status
-          : null,
-      );
-      setAttendanceUpdatedAt(result?.updated_at ?? null);
-      setIsAttendanceLoading(false);
+        if (!active) return;
+
+        setAttendanceSummary(
+          presentation[training.id] ??
+            createEmptyTrainingAttendanceSummary(training.id),
+        );
+      } catch (summaryError) {
+        console.error(
+          "Player training attendance summary loading error:",
+          summaryError,
+        );
+
+        if (!active) return;
+
+        setAttendanceSummary(null);
+        setAttendanceSummaryMessage(
+          "Кількість відповідей команди тимчасово недоступна.",
+        );
+      } finally {
+        if (active) setIsAttendanceLoading(false);
+      }
     }
 
     void loadAttendance();
@@ -173,7 +229,33 @@ export default function PlayerTrainingDetailsPage() {
     return () => {
       active = false;
     };
-  }, [training?.id]);
+  }, [playerId, training?.id]);
+
+  async function refreshAttendanceSummary() {
+    if (!training?.id) return;
+
+    try {
+      const presentation = await loadPlayerTrainingAttendancePresentation(
+        [training.id],
+        playerId,
+      );
+
+      setAttendanceSummary(
+        presentation[training.id] ??
+          createEmptyTrainingAttendanceSummary(training.id),
+      );
+      setAttendanceSummaryMessage(null);
+    } catch (summaryError) {
+      console.error(
+        "Player training attendance summary refresh error:",
+        summaryError,
+      );
+
+      setAttendanceSummaryMessage(
+        "Відповідь збережена, але кількість відповідей команди не вдалося оновити.",
+      );
+    }
+  }
 
   async function saveAttendance(status: PlayerAttendanceStatus) {
     if (!training?.id || isAttendanceSaving) return;
@@ -228,20 +310,17 @@ export default function PlayerTrainingDetailsPage() {
       const savedStatus = result.attendance?.status;
 
       setAttendanceStatus(
-        savedStatus === "yes" || savedStatus === "no"
-          ? savedStatus
-          : status,
+        isPlayerAttendanceStatus(savedStatus) ? savedStatus : status,
       );
       setAttendanceUpdatedAt(
         result.attendance?.updated_at ?? new Date().toISOString(),
       );
       setAttendanceMessage({
         tone: "success",
-        text:
-          status === "yes"
-            ? "Готово. Ви підтвердили участь у тренуванні."
-            : "Готово. Ви повідомили, що не будете на тренуванні.",
+        text: getAttendanceSuccessMessage(status),
       });
+
+      await refreshAttendanceSummary();
     } catch (error) {
       console.error("Player attendance saving error:", error);
 
@@ -265,7 +344,7 @@ export default function PlayerTrainingDetailsPage() {
         : "border-rose-200 bg-rose-50 text-rose-900";
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-950">
+    <main className="min-h-screen bg-slate-50 pb-24 text-slate-950 md:pb-0">
       <section className="bg-slate-950 px-5 py-9 text-white">
         <div className="mx-auto max-w-4xl">
           <Link
@@ -276,7 +355,7 @@ export default function PlayerTrainingDetailsPage() {
           </Link>
 
           <p className="mt-7 text-xs font-black uppercase tracking-[0.24em] text-sky-400">
-            Кабінет гравця
+            Тренування
           </p>
 
           <h1 className="mt-3 text-4xl font-black">Деталі тренування</h1>
@@ -308,7 +387,7 @@ export default function PlayerTrainingDetailsPage() {
         )}
 
         {!isLoading && training && (
-          <article className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+          <article className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div className="flex flex-wrap gap-2">
               <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black uppercase tracking-wide text-emerald-800">
                 Опубліковано
@@ -345,7 +424,7 @@ export default function PlayerTrainingDetailsPage() {
               </div>
             </dl>
 
-            <section className="mt-8 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
+            <section className="mt-8 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5 sm:p-6">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-700">
                 Ваша участь
               </p>
@@ -362,7 +441,7 @@ export default function PlayerTrainingDetailsPage() {
                 </p>
               )}
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 <button
                   type="button"
                   disabled={isAttendanceLoading || isAttendanceSaving}
@@ -374,6 +453,19 @@ export default function PlayerTrainingDetailsPage() {
                   }`}
                 >
                   ✓ Буду
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isAttendanceLoading || isAttendanceSaving}
+                  onClick={() => void saveAttendance("maybe")}
+                  className={`min-h-14 rounded-2xl border px-5 font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                    attendanceStatus === "maybe"
+                      ? "border-amber-500 bg-amber-400 text-slate-950"
+                      : "border-amber-200 bg-white text-amber-800 hover:bg-amber-50"
+                  }`}
+                >
+                  ? Під питанням
                 </button>
 
                 <button
@@ -398,10 +490,72 @@ export default function PlayerTrainingDetailsPage() {
               {attendanceMessage && (
                 <div
                   className={`mt-5 rounded-2xl border p-4 text-sm font-bold ${attendanceMessageClassName}`}
+                  aria-live="polite"
                 >
                   {attendanceMessage.text}
                 </div>
               )}
+
+              <div className="mt-6 border-t border-slate-200 pt-5">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                      Відповіді команди
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      У кабінеті гравця показуємо лише кількість.
+                    </p>
+                  </div>
+
+                  {attendanceSummary && (
+                    <span className="text-sm font-bold text-slate-500">
+                      Всього відповіли: {attendanceSummary.total}
+                    </span>
+                  )}
+                </div>
+
+                {attendanceSummary ? (
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    <div className="rounded-2xl bg-emerald-100 px-3 py-4 text-center">
+                      <strong className="block text-2xl text-emerald-900">
+                        {attendanceSummary.yes}
+                      </strong>
+                      <span className="mt-1 block text-xs font-black text-emerald-700">
+                        Будуть
+                      </span>
+                    </div>
+
+                    <div className="rounded-2xl bg-amber-100 px-3 py-4 text-center">
+                      <strong className="block text-2xl text-amber-900">
+                        {attendanceSummary.maybe}
+                      </strong>
+                      <span className="mt-1 block text-xs font-black text-amber-700">
+                        Під питанням
+                      </span>
+                    </div>
+
+                    <div className="rounded-2xl bg-rose-100 px-3 py-4 text-center">
+                      <strong className="block text-2xl text-rose-900">
+                        {attendanceSummary.no}
+                      </strong>
+                      <span className="mt-1 block text-xs font-black text-rose-700">
+                        Не будуть
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-500">
+                    {attendanceSummaryMessage ||
+                      "Завантажуємо кількість відповідей…"}
+                  </p>
+                )}
+
+                {attendanceSummaryMessage && attendanceSummary && (
+                  <p className="mt-3 text-sm font-bold text-amber-700">
+                    {attendanceSummaryMessage}
+                  </p>
+                )}
+              </div>
             </section>
 
             <div className="mt-8 rounded-2xl border border-sky-100 bg-sky-50 p-5">
@@ -414,6 +568,25 @@ export default function PlayerTrainingDetailsPage() {
                 тренування. У разі змін інформація буде оновлена тренером.
               </p>
             </div>
+
+            <nav
+              aria-label="Навігація кабінету гравця"
+              className="mt-8 grid gap-3 sm:grid-cols-2"
+            >
+              <Link
+                href="/player/trainings"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-slate-300 bg-white px-6 font-black text-slate-800 transition hover:bg-slate-50"
+              >
+                ← До тренувань
+              </Link>
+
+              <Link
+                href="/player"
+                className="inline-flex min-h-12 items-center justify-center rounded-full bg-slate-950 px-6 font-black text-white transition hover:bg-slate-800"
+              >
+                До кабінету →
+              </Link>
+            </nav>
           </article>
         )}
       </section>

@@ -112,6 +112,7 @@ export function PlayerAccessGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    let authVerifyTimer: number | null = null;
 
     async function initialize() {
       const allowed = await verifyAccess(true);
@@ -125,20 +126,43 @@ export function PlayerAccessGate({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
 
-      if (event === "SIGNED_OUT" || !session) {
+      // Startup access is already owned by initialize(). Ignoring the initial
+      // event prevents a transient empty auth event from racing the route check.
+      if (event === "INITIAL_SESSION") {
+        return;
+      }
+
+      if (event === "SIGNED_OUT") {
         setContext(null);
         setIsChecking(true);
         router.replace("/login");
         return;
       }
 
-      if (event === "USER_UPDATED") {
-        void verifyAccess(false);
+      if (!session) {
+        return;
+      }
+
+      if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+        if (authVerifyTimer !== null) {
+          window.clearTimeout(authVerifyTimer);
+        }
+
+        // Keep Supabase API calls outside the auth callback.
+        authVerifyTimer = window.setTimeout(() => {
+          if (!active) return;
+          void verifyAccess(false);
+        }, 0);
       }
     });
 
     return () => {
       active = false;
+
+      if (authVerifyTimer !== null) {
+        window.clearTimeout(authVerifyTimer);
+      }
+
       subscription.unsubscribe();
     };
   }, [router, verifyAccess]);

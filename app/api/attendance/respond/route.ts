@@ -7,8 +7,6 @@ type AttendanceStatus = "yes" | "maybe" | "no";
 
 type AttendanceRequest = {
   trainingId?: string;
-  playerId?: string;
-  playerName?: string;
   status?: AttendanceStatus;
 };
 
@@ -24,11 +22,7 @@ type ActiveMembership = {
   team_id: string;
 };
 
-const VALID_STATUSES = new Set<AttendanceStatus>([
-  "yes",
-  "maybe",
-  "no",
-]);
+const VALID_STATUSES = new Set<AttendanceStatus>(["yes", "maybe", "no"]);
 
 function normalizeText(value: string | undefined) {
   return value?.trim() ?? "";
@@ -51,15 +45,9 @@ export async function POST(request: Request) {
 
     const body = (await request.json()) as AttendanceRequest;
     const trainingId = normalizeText(body.trainingId);
-    const requestedPlayerId = normalizeText(body.playerId);
-    const requestedPlayerName = normalizeText(body.playerName);
     const status = body.status;
 
-    if (
-      !trainingId ||
-      !status ||
-      !VALID_STATUSES.has(status)
-    ) {
+    if (!trainingId || !status || !VALID_STATUSES.has(status)) {
       return NextResponse.json(
         {
           success: false,
@@ -69,12 +57,42 @@ export async function POST(request: Request) {
       );
     }
 
+    const authorization = request.headers.get("authorization");
+    const accessToken = authorization?.startsWith("Bearer ")
+      ? authorization.slice(7).trim()
+      : "";
+
+    if (!accessToken) {
+      return NextResponse.json(
+        {
+          success: false,
+          login_required: true,
+          message: "Увійдіть як гравець команди, щоб зберегти відповідь.",
+        },
+        { status: 401 },
+      );
+    }
+
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
       },
     });
+
+    const { data: userData, error: userError } =
+      await admin.auth.getUser(accessToken);
+
+    if (userError || !userData.user) {
+      return NextResponse.json(
+        {
+          success: false,
+          login_required: true,
+          message: "Сесія завершилася. Увійдіть ще раз.",
+        },
+        { status: 401 },
+      );
+    }
 
     const { data: trainingData, error: trainingError } = await admin
       .from("trainings")
@@ -111,134 +129,65 @@ export async function POST(request: Request) {
       );
     }
 
-    const authorization = request.headers.get("authorization");
-    const accessToken = authorization?.startsWith("Bearer ")
-      ? authorization.slice(7).trim()
-      : "";
+    const { data: memberships, error: membershipError } = await admin
+      .from("team_memberships")
+      .select("player_id, team_id")
+      .eq("profile_id", userData.user.id)
+      .eq("team_id", training.team_id)
+      .eq("status", "active")
+      .is("archived_at", null)
+      .not("player_id", "is", null)
+      .limit(2);
 
-    let effectivePlayerId = requestedPlayerId;
-    let effectivePlayerName = requestedPlayerName;
-    let authenticatedProfileId: string | null = null;
+    if (membershipError) {
+      console.error(
+        "Attendance player membership validation error:",
+        membershipError,
+      );
 
-    if (accessToken) {
-      const { data: userData, error: userError } =
-        await admin.auth.getUser(accessToken);
-
-      if (!userError && userData.user) {
-        const { data: memberships, error: membershipError } = await admin
-          .from("team_memberships")
-          .select("player_id, team_id")
-          .eq("profile_id", userData.user.id)
-          .eq("team_id", training.team_id)
-          .eq("status", "active")
-          .is("archived_at", null)
-          .not("player_id", "is", null)
-          .limit(2);
-
-        if (membershipError) {
-          console.error(
-            "Attendance player membership validation error:",
-            membershipError,
-          );
-
-          return NextResponse.json(
-            {
-              success: false,
-              message: "Не вдалося перевірити профіль гравця.",
-            },
-            { status: 500 },
-          );
-        }
-
-        const membership =
-          ((memberships ?? [])[0] as ActiveMembership | undefined) ?? null;
-
-        if (membership?.player_id) {
-          authenticatedProfileId = userData.user.id;
-          effectivePlayerId = membership.player_id;
-
-          const { data: player, error: playerError } = await admin
-            .from("players")
-            .select("id, full_name, display_name, is_active")
-            .eq("id", effectivePlayerId)
-            .eq("is_active", true)
-            .maybeSingle();
-
-          if (playerError || !player) {
-            return NextResponse.json(
-              {
-                success: false,
-                message: "Активного гравця не знайдено.",
-              },
-              { status: 404 },
-            );
-          }
-
-          effectivePlayerName =
-            player.display_name?.trim() ||
-            player.full_name?.trim() ||
-            "Гравець";
-        }
-      }
-    }
-
-    if (!effectivePlayerId) {
       return NextResponse.json(
         {
           success: false,
-          message: "Не вдалося визначити гравця.",
+          message: "Не вдалося перевірити профіль гравця.",
         },
-        { status: 400 },
+        { status: 500 },
       );
     }
 
-    if (!authenticatedProfileId) {
-      const { data: player, error: playerError } = await admin
-        .from("players")
-        .select("id, full_name, display_name, is_active")
-        .eq("id", effectivePlayerId)
-        .eq("is_active", true)
-        .maybeSingle();
+    const membership =
+      ((memberships ?? [])[0] as ActiveMembership | undefined) ?? null;
 
-      if (playerError || !player) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Активного гравця не знайдено.",
-          },
-          { status: 404 },
-        );
-      }
+    if (!membership?.player_id) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Активне членство у команді потрібне для голосування.",
+        },
+        { status: 403 },
+      );
+    }
 
-      const { data: membership, error: membershipError } = await admin
-        .from("team_memberships")
-        .select("player_id, team_id")
-        .eq("player_id", effectivePlayerId)
-        .eq("team_id", training.team_id)
-        .eq("status", "active")
-        .is("archived_at", null)
-        .maybeSingle();
+    const { data: player, error: playerError } = await admin
+      .from("players")
+      .select("id, is_active")
+      .eq("id", membership.player_id)
+      .eq("is_active", true)
+      .maybeSingle();
 
-      if (membershipError || !membership) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Гравець не входить до складу цієї команди.",
-          },
-          { status: 403 },
-        );
-      }
-
-      effectivePlayerName =
-        player.display_name?.trim() ||
-        player.full_name?.trim() ||
-        effectivePlayerName ||
-        "Гравець";
+    if (playerError || !player) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Активного гравця не знайдено.",
+        },
+        { status: 404 },
+      );
     }
 
     const decision = getAttendanceWriteDecision({
-      playerId: effectivePlayerId,
+      playerId: membership.player_id,
       trainingId,
+      authenticated: true,
     });
 
     if (!decision.allowed) {
@@ -247,8 +196,8 @@ export async function POST(request: Request) {
         mode: decision.configuredMode,
         reason: decision.reason,
         trainingId,
-        playerId: effectivePlayerId,
-        authenticated: Boolean(authenticatedProfileId),
+        playerId: membership.player_id,
+        authenticated: true,
       });
 
       return NextResponse.json({
@@ -264,27 +213,15 @@ export async function POST(request: Request) {
       });
     }
 
-    const rpcName = authenticatedProfileId
-      ? "respond_to_player_training"
-      : "respond_to_training_public";
-
-    const rpcArgs = authenticatedProfileId
-      ? {
-          p_profile_id: authenticatedProfileId,
-          p_training_id: trainingId,
-          p_status: status,
-        }
-      : {
-          p_training_id: trainingId,
-          p_player_id: effectivePlayerId,
-          p_status: status,
-        };
-
-    const { data, error } = await admin.rpc(rpcName, rpcArgs);
+    const { data, error } = await admin.rpc("respond_to_player_training", {
+      p_profile_id: userData.user.id,
+      p_training_id: trainingId,
+      p_status: status,
+    });
 
     if (error) {
       console.error("Attendance response RPC error:", {
-        rpcName,
+        rpcName: "respond_to_player_training",
         code: error.code,
         message: error.message,
         details: error.details,
@@ -304,8 +241,8 @@ export async function POST(request: Request) {
       runtime: decision.runtime,
       mode: decision.configuredMode,
       trainingId,
-      playerId: effectivePlayerId,
-      authenticated: Boolean(authenticatedProfileId),
+      playerId: membership.player_id,
+      authenticated: true,
     });
 
     return NextResponse.json({
